@@ -32,9 +32,9 @@ const FeaturesSection = () => {
               boxShadow: "0 0 30px rgba(255,215,0,0.2)",
             }}
           >
-            <h4 className="text-white text-2xl mb-2 font-bold">Purpose-built Creative Editor</h4>
+            <h4 className="text-white text-2xl mb-2 font-bold">Book Instant Appointments</h4>
             <p className="text-blue-300 mb-4">
-              Centered around creativity, Kahani AI's Image Generation UI keeps you focused on the thing that matters most, your images.
+              Book your appointments at your fingertip. Simple Easy User-friendly procedure to connect you with a doctor.
             </p>
             <motion.div 
               className="bg-[#0d0e24] rounded-lg overflow-hidden"
@@ -57,9 +57,9 @@ const FeaturesSection = () => {
               boxShadow: "0 0 30px rgba(255,215,0,0.2)",
             }}
           >
-            <h4 className="text-white text-2xl mb-2 font-bold">Reliable Image Adjustment</h4>
+            <h4 className="text-white text-2xl mb-2 font-bold">AI Diagnosis Detection</h4>
             <p className="text-blue-300 mb-4">
-              Use Img2Img to change details while following the original composition, or Enhance it to increase the level of detail in the image.
+              
             </p>
             <motion.div 
               className="bg-[#0d0e24] rounded-lg overflow-hidden"
@@ -186,7 +186,7 @@ const ImageGrid = () => {
 
   useEffect(() => {
     if (inView) {
-      controls.start({ rotate: 360 });
+      controls.start({ rotate: 0 });
     }
   }, [inView, controls]);
 
@@ -201,7 +201,7 @@ const ImageGrid = () => {
             className="absolute w-40 h-40 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full z-10 flex items-center justify-center"
             animate={{ 
               scale: [1, 1.2, 1], 
-              rotate: [0, 360],
+              rotate: [0, 0],
               boxShadow: [
                 "0 0 20px rgba(255, 204, 0, 0.5)",
                 "0 0 40px rgba(255, 204, 0, 0.7)",
@@ -226,7 +226,7 @@ const ImageGrid = () => {
               }}
               transition={{ duration: 2, repeat: Infinity }}
             >
-              CREATION
+              6 Rules
             </motion.span>
           </motion.div>
 
@@ -247,7 +247,7 @@ const ImageGrid = () => {
                 animate={{ 
                   opacity: 1, 
                   scale: 1,
-                  rotate: [0, 360],
+                  rotate: [0, 0],
                 }}
                 transition={{ 
                   duration: 8, // Reduced from 15 to 8 for faster rotation
@@ -269,7 +269,7 @@ const ImageGrid = () => {
                 <motion.div 
                   className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
                 >
-                  <p className="text-white text-sm font-bold">View Art</p>
+                  <p className="text-white text-sm font-bold"></p>
                 </motion.div>
               </motion.div>
             );

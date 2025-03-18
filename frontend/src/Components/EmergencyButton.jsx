@@ -10,10 +10,7 @@ const EmergencyButton = () => {
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState(null);
 
-  // WARNING: NEVER expose API keys in the frontend for production apps
-  // This is for development/demo purposes only
   const resend = new Resend('re_ZWa3WLgR_2kWo9PysCjhSzwDZe75zgzVq'); // For Vite projects
-  // OR use process.env.REACT_APP_RESEND_API_KEY for Create React App
 
   const emergencyServices = {
     police: {
