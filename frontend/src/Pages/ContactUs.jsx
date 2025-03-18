@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -10,6 +11,7 @@ import {
 } from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
 const guides = [
+  // Placeholder for guides
   {
     id: 1,
     title: "How to Perform CPR",
@@ -80,6 +82,7 @@ const guides = [
     image: "data:image/jpeg;base64,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",
     videoUrl: "https://www.youtube.com/embed/lLkw4BXa7pQ?si=HygHUz8_JCzaAGh9"
   }
+  // Add more guides as needed
 ];
 
 const ContactUs = () => {
@@ -90,6 +93,25 @@ const ContactUs = () => {
   const [cameraStream, setCameraStream] = useState(null);
   const [poseLandmarker, setPoseLandmarker] = useState(null);
   const [runningMode, setRunningMode] = useState("IMAGE");
+
+  // CPR steps to be displayed in the generated output
+  const cprSteps = [
+    "Step 1: Place the heel of one hand in the center of the chest.",
+    "Step 2: Place your other hand on top, interlocking your fingers.",
+    "Step 3: Keep your arms straight and shoulders directly above your hands.",
+    "Step 4: Perform compressions at 100-120 per minute with a depth of about 5-6 cm.",
+    "Step 5: Allow the chest to fully recoil between compressions.",
+    "Step 6: Minimize interruptions to maintain a consistent rhythm.",
+  ];
+  const [currentStep, setCurrentStep] = useState(0);
+
+  // Update CPR step every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % cprSteps.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [cprSteps.length]);
 
   // Refs for live pose detection
   const detectionVideoRef = useRef(null);
@@ -275,9 +297,10 @@ const ContactUs = () => {
             )}
           </div>
 
+          {/* Generated output with updated CPR hand-motion steps */}
           <div className="mt-6 p-4 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">
             <h3 className="text-lg font-semibold">Generated Output:</h3>
-            <p className="mt-2">Hand placement is incorrect.</p>
+            <p className="mt-2">{cprSteps[currentStep]}</p>
           </div>
         </motion.div>
       )}
@@ -312,3 +335,4 @@ const ContactUs = () => {
 };
 
 export default ContactUs;
+
