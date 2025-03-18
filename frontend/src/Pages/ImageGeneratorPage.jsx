@@ -1,53 +1,55 @@
-import  { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Download, Image, Loader, Sparkles } from 'lucide-react';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Sparkles, RefreshCw, FileText, Loader } from "lucide-react";
+import { Client } from "@gradio/client";
 
 const ImageGeneratorPage = () => {
-  const [prompt, setPrompt] = useState('');
-  const [imageCount, setImageCount] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState('1:1');
+  // State variables
+  const [symptomText, setSymptomText] = useState("");
+  const [diagnosisResult, setDiagnosisResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState([]);
+  const [error, setError] = useState(null);
 
-  const generateImages = async () => {
-    if (!prompt) return;
-    
+  // Example symptoms for quick selection
+  const exampleSymptoms = [
+    "I have no interest in physical activity. I am always thirsty",
+    "I am freezing",
+    "My eyes are pale",
+  ];
+
+  // Clear the input and diagnosis
+  const handleClear = () => {
+    setSymptomText("");
+    setDiagnosisResult(null);
+    setError(null);
+  };
+
+  // Submit the symptom text to the API using Gradio client
+  const handleSubmit = async () => {
+    if (!symptomText) return;
     setLoading(true);
+    setError(null);
+
     try {
-      const response = await fetch('/generate_images', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, num_images: imageCount }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate images');
+      // Connect to the Hugging Face Space
+      const client = await Client.connect("segadeds/Medical_Diagnosis");
+      // Call the /predict endpoint with the symptom text
+      const result = await client.predict("/predict", { txt: symptomText });
+
+      console.log("API Response:", result); // Debugging output
+
+      // Extract the correct response structure
+      if (result?.data && result.data.length > 0) {
+        setDiagnosisResult(result.data[0]); // Extract first result
+      } else {
+        setError("No diagnosis results found.");
       }
-      
-      const data = await response.json();
-      setGeneratedImages(data.image_paths || []);
-    } catch (error) {
-      console.error('Error generating images:', error);
+    } catch (err) {
+      console.error("Error getting diagnosis:", err);
+      setError("Failed to get diagnosis. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleDownload = (imageUrl, index) => {
-    const link = document.createElement('a');
-    link.href = imageUrl;
-    link.download = `generated-image-${index + 1}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const aspectRatios = {
-    '1:1': { width: 512, height: 512 },
-    '16:9': { width: 512, height: 288 },
-    '9:16': { width: 288, height: 512 },
-    '4:3': { width: 512, height: 384 },
-    '3:4': { width: 384, height: 512 }
   };
 
   return (
@@ -58,111 +60,146 @@ const ImageGeneratorPage = () => {
         className="text-center mb-12 mt-12"
       >
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-          AI Image <span className="text-yellow-400">Generator</span>
+          Medical <span className="text-yellow-400">Diagnosis</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Transform your imagination into stunning visuals with our advanced AI image generation tool.
+          Describe your symptoms in detail to get a preliminary AI-powered
+          medical assessment.
         </p>
       </motion.div>
 
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+        {/* Left Panel: Input Section */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:w-1/3 bg-gray-900/50 p-6 rounded-xl border border-gray-800"
+          className="lg:w-1/2 bg-gray-900/50 p-6 rounded-xl border border-gray-800"
         >
           <div className="space-y-6">
             <div>
-              <label className="block text-white mb-2">Your Prompt</label>
+              <label className="block text-white mb-2">
+                Describe how you feel in great detail
+              </label>
               <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the image you want to generate..."
+                value={symptomText}
+                onChange={(e) => setSymptomText(e.target.value)}
+                placeholder="Enter your symptoms here..."
                 className="w-full h-32 bg-gray-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               />
             </div>
 
-            <div>
-              <label className="block text-white mb-2">Number of Images</label>
-              <select
-                value={imageCount}
-                onChange={(e) => setImageCount(Number(e.target.value))}
-                className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-              >
-                {[1, 2, 3].map(num => (
-                  <option key={num} value={num}>{num}</option>
-                ))}
-              </select>
+            {/* Example Symptoms */}
+            <div className="flex flex-wrap gap-2">
+              <p className="text-gray-400 w-full">Examples:</p>
+              {exampleSymptoms.map((symptom, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSymptomText(symptom)}
+                  className="bg-gray-800 text-gray-300 px-4 py-2 rounded-full text-sm hover:bg-gray-700 transition"
+                >
+                  {symptom}
+                </button>
+              ))}
             </div>
 
-            <div>
-              <label className="block text-white mb-2">Aspect Ratio</label>
-              <select
-                value={aspectRatio}
-                onChange={(e) => setAspectRatio(e.target.value)}
-                className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <button
+                onClick={handleClear}
+                className="w-1/2 bg-gray-700 text-white py-4 rounded-lg hover:bg-gray-600 transition duration-300 flex items-center justify-center space-x-2"
               >
-                {Object.keys(aspectRatios).map(ratio => (
-                  <option key={ratio} value={ratio}>{ratio}</option>
-                ))}
-              </select>
+                <RefreshCw className="w-5 h-5" />
+                <span>Clear</span>
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading || !symptomText}
+                className="w-1/2 bg-gradient-to-r from-blue-900 to-blue-700 text-white py-4 rounded-lg hover:from-blue-800 hover:to-blue-600 transition duration-300 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    <span>Submit</span>
+                  </>
+                )}
+              </button>
             </div>
-
-            <button
-              onClick={generateImages}
-              disabled={loading || !prompt}
-              className="w-full bg-gradient-to-r from-blue-900 to-blue-700 text-white py-4 rounded-lg hover:from-blue-800 hover:to-blue-600 transition duration-300 flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <Loader className="w-5 h-5 animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  <span>Generate Images</span>
-                </>
-              )}
-            </button>
           </div>
         </motion.div>
 
+        {/* Right Panel: Diagnosis Results */}
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-6"
+          className="lg:w-1/2 bg-gray-900/30 p-6 rounded-xl border border-gray-800"
         >
-          {generatedImages.map((imageUrl, index) => (
-            <div
-              key={index}
-              className="relative bg-gray-900/30 rounded-xl overflow-hidden border border-gray-800 group"
-            >
-              <img
-                src={imageUrl}
-                alt={`Generated ${index + 1}`}
-                className="w-full h-full object-cover"
-                style={{
-                  aspectRatio: aspectRatio.replace(':', '/'),
-                }}
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                <button
-                  onClick={() => handleDownload(imageUrl, index)}
-                  className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition duration-300"
-                >
-                  <Download className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-          ))}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl text-white font-semibold">
+              Diagnosis Results
+            </h2>
+            <FileText className="w-6 h-6 text-gray-400" />
+          </div>
 
-          {!loading && generatedImages.length === 0 && (
-            <div className="col-span-2 flex flex-col items-center justify-center h-64 bg-gray-900/30 rounded-xl border border-gray-800">
-              <Image className="w-16 h-16 text-gray-600 mb-4" />
-              <p className="text-gray-400 text-center">
-                Your generated images will appear here
-              </p>
+          {loading ? (
+            <div className="h-64 flex items-center justify-center">
+              <Loader className="w-8 h-8 text-yellow-400 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="bg-red-900/30 p-4 rounded-lg border border-red-800">
+              <p className="text-red-300">{error}</p>
+            </div>
+          ) : diagnosisResult ? (
+            <div className="space-y-4">
+              {/* Primary Diagnosis */}
+              <div className="bg-blue-900/30 p-4 rounded-lg border border-blue-800">
+                <h3 className="text-white font-medium mb-2">
+                  Primary Diagnosis
+                </h3>
+                <p className="text-yellow-300 text-lg">{diagnosisResult.label}</p>
+              </div>
+
+              {/* Possible Conditions */}
+              {diagnosisResult.confidences &&
+                diagnosisResult.confidences.length > 0 && (
+                  <div>
+                    <h3 className="text-white font-medium mb-2">
+                      Possible Conditions
+                    </h3>
+                    <div className="space-y-2">
+                      {diagnosisResult.confidences.map((item, index) => (
+                        <div
+                          key={index}
+                          className="bg-gray-800/50 p-3 rounded-lg flex justify-between items-center"
+                        >
+                          <span className="text-gray-300">{item.label}</span>
+                          <div className="flex items-center">
+                            <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-yellow-500 rounded-full"
+                                style={{
+                                  width: `${(item.confidence || 0) * 100}%`,
+                                }}
+                              ></div>
+                            </div>
+                            <span className="text-gray-400 ml-2">
+                              {Math.round((item.confidence || 0) * 100)}%
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          ) : (
+            <div className="h-64 flex flex-col items-center justify-center text-gray-500">
+              <FileText className="w-16 h-16 mb-4 opacity-50" />
+              <p>Your diagnosis results will appear here</p>
             </div>
           )}
         </motion.div>

@@ -4,28 +4,28 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { MessageCircle, Mic, MicOff, Send, X } from 'lucide-react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
+// Initialize GoogleGenerativeAI using your environment API key.
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
-// System prompt for structured responses
-const SYSTEM_PROMPT = `You are KahaniAI Assistant, a helpful guide for the Kahani.AI website. 
-Always structure your responses in a clear, step-by-step format.
+// System prompt for structured responses.
+const SYSTEM_PROMPT = `You are Doctor Assistant, a trusted medical guide for our India-based healthcare website. Respond to user queries about their symptoms in a clear, concise, and empathetic manner. Evaluate the user's symptoms to determine if they are minor or require urgent attention. For minor issues, offer brief self-care tips. For serious or worsening symptoms, advise immediate professional help and instruct users to use the "Book Appointment" button at the top right.
 
-Key website features to know about:
-1. Story Generation: AI-powered story creation tool
-2. Image Generation: Create images from text descriptions
-3. Story Enhancement: Grammar and style improvement tools
-
-When answering:
-- Keep responses concise and focused
-- Use bullet points or numbered steps when explaining processes
-- Only provide information related to Kahani.AI website
-- If unsure, ask for clarification
-- Mention relevant website sections/buttons to click
-
-Format responses like this:
-📍 Main Answer: [brief direct answer]
-🔍 Details: [step-by-step explanation if needed]
-🎯 Quick Action: [relevant button/section to click]`;
+Guidelines for your responses:
+- When required mention the emergency contacts directly
+- Provide a clear, direct main answer.
+- Use bullet points or numbered steps only when necessary.
+- Avoid jargon and complex medical terms.
+- Use a friendly, empathetic tone.
+- Encourage users to seek professional help when needed and direct them to our appointments tab.
+- When asked for guide redirect them to the Guides tab
+- We have an emergency prompt for emergency cases so tell them that click the emergency button
+- Offer general self-care tips for minor issues.
+- Do not diagnose or prescribe medication.
+- Do not provide emergency medical advice.
+- Keep your responses short and to the point.
+- Ask for clarification if needed.
+- Do not include any formatting tags or labels in your output.
+`;
 
 const ChatBot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -76,32 +76,28 @@ const ChatBot = () => {
     const messageToSend = input.trim() || transcript.trim();
     if (!messageToSend) return;
 
+    // Add the user's message to the conversation.
     setMessages(prev => [...prev, { role: 'user', content: messageToSend }]);
     setInput('');
     resetTranscript();
     setIsLoading(true);
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const chat = model.startChat({
-        history: [{
-          role: "user",
-          parts: [{ text: SYSTEM_PROMPT }]
-        }]
-      });
-
-      const result = await chat.sendMessage([{ text: messageToSend }]);
-      const response = await result.response;
-      const text = response.text();
+      // Use the gemini-1.5-flash model and generate content using the combined prompt.
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // Combine the SYSTEM_PROMPT with the user's message.
+      const prompt = `${SYSTEM_PROMPT}\nUser: ${messageToSend}`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
 
       setMessages(prev => [...prev, { role: 'assistant', content: text }]);
       speak(text);
     } catch (error) {
       console.error('Error:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
-      }]);
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }
+      ]);
     } finally {
       setIsLoading(false);
     }
