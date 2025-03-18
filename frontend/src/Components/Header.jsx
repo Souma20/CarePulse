@@ -27,11 +27,18 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
         {/* Logo */}
-        <div className="text-white text-2xl font-bold">
-          <Link to="/" className="hover:text-yellow-400 transition duration-300">
-            MediConnect
-          </Link>
-        </div>
+        <div className="relative text-white text-4xl md:text-4xl font-extrabold tracking-wide">
+  <Link
+    to="/"
+    className="relative group transition duration-300 ease-in-out"
+  >
+    <span className="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+      MediConnect
+    </span>
+    <span className="absolute inset-x-0 bottom-0 h-[3px] bg-yellow-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+  </Link>
+</div>
+
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-6">

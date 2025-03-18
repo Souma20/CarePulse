@@ -11,6 +11,7 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 const SYSTEM_PROMPT = `You are Doctor Assistant, a trusted medical guide for our India-based healthcare website. Respond to user queries about their symptoms in a clear, concise, and empathetic manner. Evaluate the user's symptoms to determine if they are minor or require urgent attention. For minor issues, offer brief self-care tips. For serious or worsening symptoms, advise immediate professional help and instruct users to use the "Book Appointment" button at the top right.
 
 Guidelines for your responses:
+-Prescribe medication for minor issues only.
 - When required mention the emergency contacts directly
 - Provide a clear, direct main answer.
 - Use bullet points or numbered steps only when necessary.
@@ -118,7 +119,7 @@ const ChatBot = () => {
         <div className="fixed bottom-20 right-4 w-96 h-[600px] bg-[#13142d] rounded-xl shadow-2xl flex flex-col z-50 border border-gray-700">
           {/* Header */}
           <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-            <h3 className="text-white font-bold">Kahani.AI Assistant</h3>
+            <h3 className="text-white font-bold">Med.AI Assistant</h3>
             <button
               onClick={() => setIsOpen(false)}
               className="text-gray-400 hover:text-white transition-colors"

@@ -39,10 +39,9 @@ const Footer = () => {
           <Grid item xs={12} sm={4}>
             <motion.div variants={itemVariants}>
               <Typography variant="h5" gutterBottom style={{ fontWeight: '600', fontFamily: `'Merriweather', serif`, color: '#93C5FD' }}>
-                About Kahani AI
+                About Mediconnect
               </Typography>
               <Typography variant="body2" style={{ color: '#E5E7EB', lineHeight: 1.8 }}>
-                Every story begins with a spark. Kahani AI helps writers bring their ideas to life, offering AI-powered assistance to refine narratives, generate plots, and enhance creativity.
               </Typography>
             </motion.div>
           </Grid>
@@ -69,10 +68,10 @@ const Footer = () => {
               </Typography>
               <Box display="flex" justifyContent="center" gap={2}>
                 {[
-                  { icon: <Facebook fontSize="large" />, link: "https://facebook.com/kahaniAI" },
-                  { icon: <Twitter fontSize="large" />, link: "https://twitter.com/kahaniAI" },
-                  { icon: <Instagram fontSize="large" />, link: "https://instagram.com/kahaniAI" },
-                  { icon: <LinkedIn fontSize="large" />, link: "https://linkedin.com/company/kahaniAI" },
+                  { icon: <Facebook fontSize="large" />, link: "https://facebook.com" },
+                  { icon: <Twitter fontSize="large" />, link: "https://twitter.com" },
+                  { icon: <Instagram fontSize="large" />, link: "https://instagram.com" },
+                  { icon: <LinkedIn fontSize="large" />, link: "https://linkedin.com/company" },
                 ].map((social, index) => (
                   <IconButton
                     key={index}
