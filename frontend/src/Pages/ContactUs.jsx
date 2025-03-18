@@ -81,7 +81,25 @@ const ContactUs = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGuide, setSelectedGuide] = useState(null);
   const [user] = useAuthState(auth);
+  const [isAiSidebarOpen, setAiSidebarOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
 
+  const toggleAiSidebar = async () => {
+    setAiSidebarOpen(!isAiSidebarOpen);
+    if (!isAiSidebarOpen) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setCameraStream(stream);
+      } catch (error) {
+        console.error("Error accessing camera: ", error);
+      }
+    } else {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        setCameraStream(null);
+      }
+    }
+  };
   const filteredGuides = guides.filter((guide) =>
     guide.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -93,6 +111,7 @@ const ContactUs = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
+        <br></br>
         <h1 className="text-4xl font-bold">Emergency Medical Guides</h1>
         <p className="text-gray-400 mt-2">
           Learn crucial first-aid techniques to help in emergencies.
@@ -100,16 +119,25 @@ const ContactUs = () => {
       </motion.div>
 
       {/* Search Bar */}
-      <div className="flex items-center bg-gray-800 p-3 rounded-lg mb-6 max-w-lg mx-auto">
-        <Search className="text-gray-400 mr-3" />
-        <input
-          type="text"
-          placeholder="Search guides..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="bg-transparent w-full focus:outline-none text-white"
-        />
-      </div>
+      <div className="max-w-4xl mx-auto flex justify-between items-center space-x-3 p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+  <input
+    type="text"
+    placeholder="Search..."
+    className="px-4 py-3 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+  />
+  <button className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-lg shadow-md hover:scale-105 hover:shadow-lg transform transition duration-300 ease-in-out">
+    <Search size={20} />
+  </button>
+  
+  <button 
+    onClick={toggleAiSidebar} 
+    className="relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-bold rounded-lg shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 hover:shadow-xl group"
+  >
+    <span className="absolute inset-0 w-full h-full bg-white opacity-10 rounded-lg blur-sm"></span>
+    <span className="relative">🚀 Use AI Detection</span>
+  </button>
+</div>
+<br></br>
 
       {/* Guides List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -127,7 +155,36 @@ const ContactUs = () => {
           </motion.div>
         ))}
       </div>
+      {/* AI Detection Sidebar */}
+      {isAiSidebarOpen && (
+        <motion.div
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ duration: 0.3 }}
+          className="fixed top-0 right-0 h-full w-1/3 bg-white dark:bg-gray-800 shadow-lg p-6 z-50 overflow-y-auto"
+        >
+          <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">AI Detection</h2>
+          <button onClick={toggleAiSidebar} className="absolute top-4 right-6 text-gray-600 dark:text-gray-400 text-xl">
+            ✖
+          </button>
 
+          <div className="border rounded-lg overflow-hidden">
+            {cameraStream ? (
+              <video autoPlay playsInline ref={(video) => video && (video.srcObject = cameraStream)} className="w-full h-64 object-cover" />
+            ) : (
+              <div className="w-full h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500">
+                Camera feed unavailable
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 p-4 border rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white">
+            <h3 className="text-lg font-semibold">Generated Output:</h3>
+            <p className="mt-2">Hand placement is incorrect.</p>
+          </div>
+        </motion.div>
+      )}
       {/* Modal for Video */}
       {selectedGuide && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
