@@ -1,8 +1,13 @@
-import { useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase/config";
 import { Search } from "lucide-react";
+import {
+  PoseLandmarker,
+  FilesetResolver,
+  DrawingUtils,
+} from "https://cdn.skypack.dev/@mediapipe/tasks-vision@0.10.0";
 
 const guides = [
   {
@@ -83,6 +88,12 @@ const ContactUs = () => {
   const [user] = useAuthState(auth);
   const [isAiSidebarOpen, setAiSidebarOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
+  const [poseLandmarker, setPoseLandmarker] = useState(null);
+  const [runningMode, setRunningMode] = useState("IMAGE");
+
+  // Refs for live pose detection
+  const detectionVideoRef = useRef(null);
+  const detectionCanvasRef = useRef(null);
 
   const toggleAiSidebar = async () => {
     setAiSidebarOpen(!isAiSidebarOpen);
@@ -95,14 +106,85 @@ const ContactUs = () => {
       }
     } else {
       if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream.getTracks().forEach((track) => track.stop());
         setCameraStream(null);
       }
     }
   };
+
   const filteredGuides = guides.filter((guide) =>
     guide.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Load the pose detection model once on mount.
+  useEffect(() => {
+    const createPoseLandmarker = async () => {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+      );
+      const landmarker = await PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+          delegate: "GPU",
+        },
+        runningMode: runningMode,
+        numPoses: 2,
+      });
+      setPoseLandmarker(landmarker);
+    };
+    createPoseLandmarker();
+  }, [runningMode]);
+
+  // Continuous animation loop for live pose detection.
+  const predictPose = useCallback(async () => {
+    const video = detectionVideoRef.current;
+    const canvas = detectionCanvasRef.current;
+    if (!video || !canvas || !poseLandmarker) {
+      window.requestAnimationFrame(predictPose);
+      return;
+    }
+    if (video.paused || video.ended) {
+      window.requestAnimationFrame(predictPose);
+      return;
+    }
+    // Sync canvas dimensions to video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const canvasCtx = canvas.getContext("2d");
+
+    // Switch to VIDEO mode if needed.
+    if (runningMode === "IMAGE") {
+      setRunningMode("VIDEO");
+      await poseLandmarker.setOptions({ runningMode: "VIDEO" });
+    }
+
+    const timestamp = performance.now();
+    poseLandmarker.detectForVideo(video, timestamp, (result) => {
+      canvasCtx.save();
+      canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+      result.landmarks.forEach((landmark) => {
+        const drawingUtils = new DrawingUtils(canvasCtx);
+        drawingUtils.drawLandmarks(landmark, {
+          radius: (data) =>
+            DrawingUtils.lerp(data.from?.z || 0, -0.15, 0.1, 5, 1),
+        });
+        drawingUtils.drawConnectors(landmark, PoseLandmarker.POSE_CONNECTIONS);
+      });
+      canvasCtx.restore();
+    });
+    window.requestAnimationFrame(predictPose);
+  }, [poseLandmarker, runningMode]);
+
+  // Start live pose detection when cameraStream is active.
+  useEffect(() => {
+    if (cameraStream && detectionVideoRef.current) {
+      detectionVideoRef.current.srcObject = cameraStream;
+      detectionVideoRef.current.play().then(() => {
+        window.requestAnimationFrame(predictPose);
+      });
+    }
+  }, [cameraStream, predictPose]);
 
   return (
     <div className="min-h-screen bg-[#0a0b1d] text-white py-12 px-6">
@@ -111,7 +193,7 @@ const ContactUs = () => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <br></br>
+        <br />
         <h1 className="text-4xl font-bold">Emergency Medical Guides</h1>
         <p className="text-gray-400 mt-2">
           Learn crucial first-aid techniques to help in emergencies.
@@ -120,24 +202,25 @@ const ContactUs = () => {
 
       {/* Search Bar */}
       <div className="max-w-4xl mx-auto flex justify-between items-center space-x-3 p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
-  <input
-    type="text"
-    placeholder="Search..."
-    className="px-4 py-3 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-  />
-  <button className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-lg shadow-md hover:scale-105 hover:shadow-lg transform transition duration-300 ease-in-out">
-    <Search size={20} />
-  </button>
-  
-  <button 
-    onClick={toggleAiSidebar} 
-    className="relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-bold rounded-lg shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 hover:shadow-xl group"
-  >
-    <span className="absolute inset-0 w-full h-full bg-white opacity-10 rounded-lg blur-sm"></span>
-    <span className="relative">🚀 Use AI Detection</span>
-  </button>
-</div>
-<br></br>
+        <input
+          type="text"
+          placeholder="Search..."
+          className="px-4 py-3 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <button className="px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-semibold rounded-lg shadow-md hover:scale-105 hover:shadow-lg transform transition duration-300 ease-in-out">
+          <Search size={20} />
+        </button>
+
+        <button
+          onClick={toggleAiSidebar}
+          className="relative px-6 py-3 bg-gradient-to-r from-green-500 to-green-700 text-white font-bold rounded-lg shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110 hover:shadow-xl group"
+        >
+          <span className="absolute inset-0 w-full h-full bg-white opacity-10 rounded-lg blur-sm"></span>
+          <span className="relative">🚀 Use AI Detection</span>
+        </button>
+      </div>
+      <br />
 
       {/* Guides List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -155,6 +238,7 @@ const ContactUs = () => {
           </motion.div>
         ))}
       </div>
+
       {/* AI Detection Sidebar */}
       {isAiSidebarOpen && (
         <motion.div
@@ -169,9 +253,21 @@ const ContactUs = () => {
             ✖
           </button>
 
-          <div className="border rounded-lg overflow-hidden">
+          {/* Camera feed with live pose overlay */}
+          <div className="relative border rounded-lg overflow-hidden">
             {cameraStream ? (
-              <video autoPlay playsInline ref={(video) => video && (video.srcObject = cameraStream)} className="w-full h-64 object-cover" />
+              <>
+                <video
+                  ref={detectionVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-64 object-cover"
+                />
+                <canvas
+                  ref={detectionCanvasRef}
+                  className="absolute top-0 left-0 w-full h-64 pointer-events-none"
+                ></canvas>
+              </>
             ) : (
               <div className="w-full h-64 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500">
                 Camera feed unavailable
@@ -185,6 +281,7 @@ const ContactUs = () => {
           </div>
         </motion.div>
       )}
+
       {/* Modal for Video */}
       {selectedGuide && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
