@@ -39,7 +39,7 @@ const Footer = () => {
           <Grid item xs={12} sm={4}>
             <motion.div variants={itemVariants}>
               <Typography variant="h5" gutterBottom style={{ fontWeight: '600', fontFamily: `'Merriweather', serif`, color: '#93C5FD' }}>
-                About Mediconnect
+                About CarePulse
               </Typography>
               <Typography variant="body2" style={{ color: '#E5E7EB', lineHeight: 1.8 }}>
               </Typography>
