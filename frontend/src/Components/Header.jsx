@@ -38,7 +38,7 @@ const Header = () => {
           <NavLink to="/" isActive={location.pathname === "/"}>Home</NavLink>
           <NavLink to="/appointments" isActive={location.pathname === "/appointments"}>Appointments</NavLink>
           <NavLink to="/blog" isActive={location.pathname === "/blog"}>Stories</NavLink>
-          <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>Contact Us</NavLink>
+          <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>Guides</NavLink>
           {user ? (
             <button
               onClick={() => auth.signOut()}
@@ -66,7 +66,7 @@ const Header = () => {
           <NavLink to="/" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/"}>Home</NavLink>
           <NavLink to="/appointments" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/appointments"}>Appointments</NavLink>
           <NavLink to="/blog" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/blog"}>Stories</NavLink>
-          <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>Contact Us</NavLink>
+          <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>Guides</NavLink>
           {user ? (
             <button
               onClick={() => {
