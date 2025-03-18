@@ -320,7 +320,7 @@ const Blog = () => {
           Stories that <span className="text-yellow-400">Inspire</span>
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Share your creative journey, inspire others, and be part of our growing storytelling community.
+          Share your creative journey, inspire others, and be part of our growing community.
         </p>
       </motion.div>
 
