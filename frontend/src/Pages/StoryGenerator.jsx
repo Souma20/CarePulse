@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, Polyline } from
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { motion } from "framer-motion";
+import "leaflet-routing-machine";
 
 // Fix Leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -75,15 +76,74 @@ function MapScan({ isSearching, center }) {
   );
 }
 
-// AmbulanceMovement component to handle ambulance route and movement
-function AmbulanceMovement({ startLocation, endLocation, stage, setStage, setAmbulanceLocation, setAmbulanceETA }) {
+// RoadRoute component to handle road routing
+function RoadRoute({ startLocation, endLocation, setRoutePath }) {
+  const map = useMap();
+  const routingControlRef = useRef(null);
+
+  useEffect(() => {
+    if (!startLocation || !endLocation || !map) return;
+
+    // Remove previous routing control if exists
+    if (routingControlRef.current) {
+      map.removeControl(routingControlRef.current);
+    }
+
+    // Create a new routing control
+    const routingControl = L.Routing.control({
+      waypoints: [
+        L.latLng(startLocation[0], startLocation[1]),
+        L.latLng(endLocation[0], endLocation[1])
+      ],
+      routeWhileDragging: false,
+      addWaypoints: false,
+      draggableWaypoints: false,
+      showAlternatives: false,
+      fitSelectedRoutes: false,
+      show: false, // Don't show the route text instructions
+      lineOptions: {
+        styles: [
+          { color: '#0066FF', opacity: 0.8, weight: 6 }
+        ]
+      },
+      createMarker: function() {
+        return null; // Don't create markers for waypoints
+      }
+    }).addTo(map);
+
+    // Store reference to control
+    routingControlRef.current = routingControl;
+
+    // Get route path when route is found
+    routingControl.on('routesfound', function(e) {
+      const routes = e.routes;
+      const route = routes[0]; // Get the first route
+      
+      // Extract coordinates from the route
+      const coordinates = route.coordinates.map(coord => [coord.lat, coord.lng]);
+      
+      // Set the route path to state for use in tracking
+      setRoutePath(coordinates);
+    });
+
+    return () => {
+      if (routingControlRef.current && map) {
+        map.removeControl(routingControlRef.current);
+      }
+    };
+  }, [startLocation, endLocation, map, setRoutePath]);
+
+  return null;
+}
+
+// AmbulanceMovement component to handle ambulance movement along road path
+function AmbulanceMovement({ routePath, stage, setStage, setAmbulanceLocation, setAmbulanceETA, setCompletedPath }) {
   const moveIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const totalTripDuration = 10 * 60 * 1000; // 10 minutes in milliseconds
-  const [path, setPath] = useState([]); // To store the ambulance's path
-
+  
   useEffect(() => {
-    if (stage !== "enroute" || !startLocation || !endLocation) return;
+    if (stage !== "enroute" || !routePath || routePath.length < 2) return;
 
     // Clear any existing interval
     if (moveIntervalRef.current) {
@@ -91,36 +151,34 @@ function AmbulanceMovement({ startLocation, endLocation, stage, setStage, setAmb
     }
 
     startTimeRef.current = Date.now();
-    const totalSteps = 300; // More steps for smoother movement
-    const latDiff = (endLocation[0] - startLocation[0]) / totalSteps;
-    const lngDiff = (endLocation[1] - startLocation[1]) / totalSteps;
-
+    const totalSteps = routePath.length - 1;
     let currentStep = 0;
+
+    // Start the ambulance from the first point of the route
+    setAmbulanceLocation(routePath[0]);
+    setCompletedPath([routePath[0]]);
 
     moveIntervalRef.current = setInterval(() => {
       currentStep++;
 
-      if (currentStep <= totalSteps) {
-        // Calculate the ambulance's current position
-        const currentLocation = [
-          startLocation[0] + latDiff * currentStep,
-          startLocation[1] + lngDiff * currentStep
-        ];
-        setAmbulanceLocation(currentLocation);
+      if (currentStep < routePath.length) {
+        // Move ambulance to next point on the route
+        setAmbulanceLocation(routePath[currentStep]);
+        
+        // Update the completed path for the blue line
+        setCompletedPath(prevPath => [...prevPath, routePath[currentStep]]);
 
-        // Update the path
-        setPath(prevPath => [...prevPath, currentLocation]);
-
-        // Calculate the elapsed time
+        // Calculate the elapsed time and remaining time
         const elapsedMs = Date.now() - startTimeRef.current;
-        // Calculate the remaining time in minutes (more realistic)
-        const remainingMinutes = Math.ceil((totalTripDuration - elapsedMs) / (60 * 1000));
+        // Calculate progress percentage
+        const progressPercentage = currentStep / totalSteps;
+        // Calculate remaining time based on progress
+        const remainingMinutes = Math.ceil((1 - progressPercentage) * (totalTripDuration / (60 * 1000)));
         setAmbulanceETA(Math.max(1, remainingMinutes));
 
-        // If we've used up all the time, force arrival
-        if (elapsedMs >= totalTripDuration || currentStep === totalSteps) {
+        // If we've reached the destination
+        if (currentStep === totalSteps) {
           clearInterval(moveIntervalRef.current);
-          setAmbulanceLocation(endLocation);
           setStage("arrived");
         }
       }
@@ -131,19 +189,9 @@ function AmbulanceMovement({ startLocation, endLocation, stage, setStage, setAmb
         clearInterval(moveIntervalRef.current);
       }
     };
-  }, [stage, startLocation, endLocation, setAmbulanceLocation, setAmbulanceETA, setStage]);
+  }, [stage, routePath, setAmbulanceLocation, setAmbulanceETA, setStage, setCompletedPath]);
 
-  return (
-    <>
-      {/* Show the ambulance's path as a polyline */}
-      {path.length > 1 && (
-        <Polyline
-          positions={path}
-          pathOptions={{ color: 'red', weight: 3 }}
-        />
-      )}
-    </>
-  );
+  return null;
 }
 
 const StoryGenerator = () => {
@@ -153,6 +201,9 @@ const StoryGenerator = () => {
   const [ambulanceETA, setAmbulanceETA] = useState(null);
   const [ambulanceDetails, setAmbulanceDetails] = useState(null);
   const [availableAmbulances, setAvailableAmbulances] = useState([]);
+  const [routePath, setRoutePath] = useState(null);
+  const [completedPath, setCompletedPath] = useState([]);
+  const [remainingPath, setRemainingPath] = useState([]);
 
   // Get user location
   useEffect(() => {
@@ -194,6 +245,25 @@ const StoryGenerator = () => {
       );
     }
   }, []);
+
+  // Update remaining path when routePath or completedPath changes
+  useEffect(() => {
+    if (routePath && routePath.length > 0 && completedPath.length > 0) {
+      // Calculate the index of the last completed point in the routePath
+      const lastCompletedPoint = completedPath[completedPath.length - 1];
+      let lastCompletedIndex = 0;
+      
+      for (let i = 0; i < routePath.length; i++) {
+        if (routePath[i][0] === lastCompletedPoint[0] && routePath[i][1] === lastCompletedPoint[1]) {
+          lastCompletedIndex = i;
+          break;
+        }
+      }
+      
+      // Set the remaining path as everything after the last completed point
+      setRemainingPath(routePath.slice(lastCompletedIndex + 1));
+    }
+  }, [routePath, completedPath]);
 
   // Call ambulance function
   const callAmbulance = () => {
@@ -271,6 +341,31 @@ const StoryGenerator = () => {
                   </Marker>
                 ))}
 
+                {/* Get road route when ambulance is found */}
+                {stage === "found" && userLocation && ambulanceLocation && (
+                  <RoadRoute 
+                    startLocation={ambulanceLocation} 
+                    endLocation={userLocation}
+                    setRoutePath={setRoutePath}
+                  />
+                )}
+
+                {/* Show completed path (blue line) */}
+                {completedPath.length > 1 && (
+                  <Polyline
+                    positions={completedPath}
+                    pathOptions={{ color: '#0066FF', weight: 5, opacity: 0.8 }}
+                  />
+                )}
+
+                {/* Show remaining path (lighter blue line) */}
+                {remainingPath.length > 1 && (
+                  <Polyline
+                    positions={remainingPath}
+                    pathOptions={{ color: '#0066FF', weight: 5, opacity: 0.4, dashArray: '10, 10' }}
+                  />
+                )}
+
                 {/* Selected ambulance (visible during found and enroute stages) */}
                 {ambulanceLocation && (stage === "found" || stage === "enroute" || stage === "arrived") && (
                   <Marker position={ambulanceLocation} icon={ambulanceIcon}>
@@ -288,14 +383,14 @@ const StoryGenerator = () => {
                 <MapScan isSearching={stage === "searching"} center={userLocation} />
 
                 {/* Ambulance movement handler */}
-                {userLocation && ambulanceLocation && stage === "enroute" && (
+                {routePath && stage === "enroute" && (
                   <AmbulanceMovement
-                    startLocation={ambulanceLocation}
-                    endLocation={userLocation}
+                    routePath={routePath}
                     stage={stage}
                     setStage={setStage}
                     setAmbulanceLocation={setAmbulanceLocation}
                     setAmbulanceETA={setAmbulanceETA}
+                    setCompletedPath={setCompletedPath}
                   />
                 )}
 
@@ -356,6 +451,7 @@ const StoryGenerator = () => {
                     <p className="mt-4 text-xl">
                       Estimated Time of Arrival: <span className="text-yellow-400 font-bold">{ambulanceETA} minutes</span>
                     </p>
+                    <p className="mt-2 text-blue-300">Calculating fastest route...</p>
                   </div>
                 )}
 
@@ -374,6 +470,9 @@ const StoryGenerator = () => {
                         <div className="bg-yellow-400 h-2.5 rounded-full" style={{ width: `${(10 - Math.min(ambulanceETA, 10)) * 10}%` }}></div>
                       </div>
                     </div>
+                    <p className="text-sm text-blue-300 mb-4">
+                      The ambulance is following the fastest road route to your location
+                    </p>
                     <button
                       className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                       onClick={() => window.open(`tel:${ambulanceDetails.phone}`)}

@@ -58,7 +58,7 @@ const App = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Logi />} />              
             <Route path="/generate-images" element={<ImageGeneratorPage />} />
-            <Route path="/story-generator" element={<StoryGenerator />} />
+            <Route path="/ambulance-tracker" element={<StoryGenerator />} />
             <Route path="/feedback" element={<StoryFeedback />} />
           </Routes>
           <Footer />

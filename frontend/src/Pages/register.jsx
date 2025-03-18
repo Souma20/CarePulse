@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "../firebase/config";
+import { auth, googleProvider, db } from "../firebase/config";
+import { doc, setDoc } from "firebase/firestore";
 import PhoneVerification from "../components/PhoneVerification"; // Ensure this component exists
 
 export const Register = () => {
@@ -13,39 +14,83 @@ export const Register = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [phoneVerified, setPhoneVerified] = useState(false);
 
+  // Check if user is already logged in
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        navigate('/');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
+
   // Step 1: Validate and move to phone verification
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      setLoading(false);
       return;
     }
+    
     setError(""); // Clear previous errors
     setStep(2); // Move to phone verification
+    setLoading(false);
   };
 
   // Step 2: Handle phone verification and register the user
   const handlePhoneVerificationComplete = async () => {
     setPhoneVerified(true);
+    setLoading(true);
+    
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', userCredential.user.uid), {
+        name,
+        email,
+        phone,
+        createdAt: new Date()
+      });
+      
+      // Navigation will be handled by the useEffect hook
     } catch (error) {
+      console.error("Registration error:", error);
       setError(error.message);
+      setLoading(false);
     }
   };
 
   // Google Sign-Up
   const handleGoogleRegister = async () => {
+    setLoading(true);
+    setError("");
+    
     try {
-      await signInWithPopup(auth, googleProvider);
-      navigate("/");
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Create user document in Firestore if it doesn't exist
+      await setDoc(doc(db, 'users', result.user.uid), {
+        name: result.user.displayName || '',
+        email: result.user.email || '',
+        phone: '',
+        createdAt: new Date()
+      }, { merge: true });
+      
+      // Navigation will be handled by the useEffect hook
     } catch (error) {
+      console.error("Google registration error:", error);
       setError("Google sign-up failed");
+      setLoading(false);
     }
   };
 
@@ -89,6 +134,7 @@ export const Register = () => {
                 placeholder="Name"
                 className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
                 required
+                disabled={loading}
               />
               <input
                 type="email"
@@ -97,6 +143,7 @@ export const Register = () => {
                 placeholder="example@email.com"
                 className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
                 required
+                disabled={loading}
               />
               <input
                 type="tel"
@@ -105,6 +152,7 @@ export const Register = () => {
                 placeholder="Phone Number"
                 className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
                 required
+                disabled={loading}
               />
 
               <div className="relative">
@@ -115,6 +163,7 @@ export const Register = () => {
                   placeholder="Password"
                   className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
                   required
+                  disabled={loading}
                 />
                 <span
                   className="absolute right-3 top-3 text-sm text-gray-400 cursor-pointer hover:text-yellow-400"
@@ -132,6 +181,7 @@ export const Register = () => {
                   placeholder="Confirm Password"
                   className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:border-yellow-400 focus:outline-none"
                   required
+                  disabled={loading}
                 />
                 <span
                   className="absolute right-3 top-3 text-sm text-gray-400 cursor-pointer hover:text-yellow-400"
@@ -143,18 +193,20 @@ export const Register = () => {
 
               <button
                 type="submit"
-                className="w-full p-3 bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg transition duration-300 hover:from-blue-800 hover:to-blue-600"
+                className="w-full p-3 bg-gradient-to-r from-blue-900 to-blue-700 text-white rounded-lg transition duration-300 hover:from-blue-800 hover:to-blue-600 disabled:opacity-50"
+                disabled={loading}
               >
-                Continue to Phone Verification
+                {loading ? "Processing..." : "Continue to Phone Verification"}
               </button>
 
               <button
                 type="button"
                 onClick={handleGoogleRegister}
-                className="w-full p-3 bg-white text-gray-800 rounded-lg transition duration-300 hover:bg-gray-100 flex items-center justify-center gap-2"
+                className="w-full p-3 bg-white text-gray-800 rounded-lg transition duration-300 hover:bg-gray-100 flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={loading}
               >
                 <img src="/google-icon.png" alt="Google" className="w-5 h-5" />
-                Sign up with Google
+                {loading ? "Processing..." : "Sign up with Google"}
               </button>
             </form>
           ) : (
@@ -163,6 +215,7 @@ export const Register = () => {
               phoneNumber={phone}
               userData={{ name, email, phone }}
               onComplete={handlePhoneVerificationComplete}
+              loading={loading}
             />
           )}
         </div>

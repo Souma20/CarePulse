@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase/config";
@@ -8,7 +8,8 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
-  const [user] = useAuthState(auth);
+  const navigate = useNavigate();
+  const [user, loading] = useAuthState(auth);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,6 +19,15 @@ const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   return (
     <nav
@@ -59,9 +69,11 @@ const Header = () => {
           <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>
             Guides
           </NavLink>
-          {user ? (
+          {loading ? (
+            <span className="text-white opacity-70">Loading...</span>
+          ) : user ? (
             <button
-              onClick={() => auth.signOut()}
+              onClick={handleLogout}
               className="text-white hover:text-yellow-400 transition duration-300"
             >
               Logout
@@ -104,10 +116,12 @@ const Header = () => {
           <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>
             Guides
           </NavLink>
-          {user ? (
+          {loading ? (
+            <span className="text-white opacity-70">Loading...</span>
+          ) : user ? (
             <button
               onClick={() => {
-                auth.signOut();
+                handleLogout();
                 setMenuOpen(false);
               }}
               className="text-white hover:text-yellow-400 transition duration-300"
