@@ -37,7 +37,7 @@ const Header = () => {
         <div className="hidden md:flex items-center space-x-6">
           <NavLink to="/" isActive={location.pathname === "/"}>Home</NavLink>
           <NavLink to="/appointments" isActive={location.pathname === "/appointments"}>Appointments</NavLink>
-          <NavLink to="/blog" isActive={location.pathname === "/blog"}>Stories</NavLink>
+          <NavLink to="/blog" isActive={location.pathname === "/blog"}>Community</NavLink>
           <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>Guides</NavLink>
           {user ? (
             <button
@@ -65,7 +65,7 @@ const Header = () => {
         <div className="md:hidden bg-black/90 text-white flex flex-col space-y-4 p-4 absolute top-16 left-0 right-0 z-40">
           <NavLink to="/" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/"}>Home</NavLink>
           <NavLink to="/appointments" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/appointments"}>Appointments</NavLink>
-          <NavLink to="/blog" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/blog"}>Stories</NavLink>
+          <NavLink to="/blog" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/blog"}>Community</NavLink>
           <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>Guides</NavLink>
           {user ? (
             <button

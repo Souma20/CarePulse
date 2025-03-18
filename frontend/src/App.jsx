@@ -13,7 +13,6 @@ import Blog from "./Pages/Blog";
 import Logi from "./Pages/login";
 import ContactUs from "./Pages/ContactUs";
 
-import ImageGrid from "./components/AdventureSection/ImageGeneratorContent";
 import { auth } from './firebase/config';
 import StoryGenerator from "./Pages/StoryGenerator";
 import StoryFeedback from "./Pages/Feedback";

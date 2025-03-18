@@ -1,277 +1,390 @@
-import { useState } from "react";
-import { Book, Type, History, Settings2, Sparkles, RotateCcw, Mic } from "lucide-react";
-import { Alert as MuiAlert } from "@mui/material";
+import { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import { motion } from "framer-motion";
 
-const genres = [
-  { name: "Fantasy", icon: "🏰", color: "from-blue-500 to-purple-500" },
-  { name: "Sci-Fi", icon: "🚀", color: "from-cyan-500 to-blue-500" },
-  { name: "Mystery", icon: "🔍", color: "from-purple-500 to-pink-500" },
-  { name: "Romance", icon: "💝", color: "from-pink-500 to-rose-500" },
-  { name: "Horror", icon: "👻", color: "from-gray-700 to-gray-900" },
-  { name: "Adventure", icon: "🗺", color: "from-green-500 to-emerald-500" }
-];
+// Fix Leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png",
+});
 
-const StoryGenerator = () => {
-  const [prompt, setPrompt] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState(null);
-  const [generatedStory, setGeneratedStory] = useState("");
-  const [storyMetadata, setStoryMetadata] = useState({ title: "", premise: "", genre: "" });
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
-  const [wordCount, setWordCount] = useState(500);
-  const [isListening, setIsListening] = useState(false);
-  const [language, setLanguage] = useState("en-US"); // Default language is English
+// Custom ambulance icon
+const ambulanceIcon = new L.Icon({
+  iconUrl: "/images/ambulance-icon.png", // Add this image to your public folder
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+  popupAnchor: [0, -20],
+});
 
-  // Initialize SpeechRecognition
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false; // Stop after one sentence
-  recognition.interimResults = false; // Only final results
-  recognition.lang = language; // Set language based on user selection
-
-  // Handle speech recognition results
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    setPrompt((prevPrompt) => prevPrompt + " " + transcript); // Append the recognized text
-    setIsListening(false); // Stop listening after recognition
-  };
-
-  // Handle errors
-  recognition.onerror = (event) => {
-    console.error("Speech recognition error:", event.error);
-    setIsListening(false);
-  };
-
-  // Start speech-to-text
-  const startSpeechToText = () => {
-    if (isListening) {
-      recognition.stop();
-      setIsListening(false);
-    } else {
-      recognition.lang = language; // Set language before starting
-      recognition.start();
-      setIsListening(true);
+// Component to update map view when location changes
+function StoryGenerator({ coords }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords) {
+      map.setView(coords, 15);
     }
-  };
+  }, [coords, map]);
+  return null;
+}
 
-  const handleGenerate = async () => {
-    if (!prompt.trim() || !selectedGenre) {
-      setShowAlert(true);
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const response = await fetch("http://localhost:5003/generate_story", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt,
-          genre: selectedGenre,
-          wordCount: wordCount
-        })
-      });
-      if (!response.ok) {
-        throw new Error("Failed to generate story");
+// MapScan component to show scanning animation on map
+function MapScan({ isSearching, center }) {
+  const [radius, setRadius] = useState(0);
+  const maxRadius = 1000; // Maximum scan radius in meters
+  
+  useEffect(() => {
+    if (!isSearching || !center) return;
+    
+    let animationFrame;
+    const startTime = Date.now();
+    const duration = 4000; // 4 seconds for the scan
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      setRadius(progress * maxRadius);
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
       }
-      const data = await response.json();
-      setGeneratedStory(data.story);
-      setStoryMetadata({ title: data.title, premise: data.premise, genre: data.genre });
-    } catch (error) {
-      console.error("Error generating story:", error);
-    } finally {
-      setIsGenerating(false);
+    };
+    
+    animationFrame = requestAnimationFrame(animate);
+    
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [isSearching, center]);
+  
+  if (!isSearching || !center) return null;
+  
+  return (
+    <Circle 
+      center={center} 
+      radius={radius} 
+      pathOptions={{ 
+        color: 'rgba(255, 0, 0, 0.6)', 
+        fillColor: 'rgba(255, 0, 0, 0.1)', 
+        weight: 2 
+      }} 
+    />
+  );
+}
+
+// AmbulanceMovement component to handle ambulance route and movement
+function AmbulanceMovement({ startLocation, endLocation, stage, setStage, setAmbulanceLocation, setAmbulanceETA }) {
+  const moveIntervalRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const totalTripDuration = 10 * 60 * 1000; // 10 minutes in milliseconds
+  
+  useEffect(() => {
+    if (stage !== "enroute" || !startLocation || !endLocation) return;
+    
+    // Clear any existing interval
+    if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current);
     }
+    
+    startTimeRef.current = Date.now();
+    const totalSteps = 300; // More steps for smoother movement
+    const latDiff = (endLocation[0] - startLocation[0]) / totalSteps;
+    const lngDiff = (endLocation[1] - startLocation[1]) / totalSteps;
+    
+    let currentStep = 0;
+    
+    moveIntervalRef.current = setInterval(() => {
+      currentStep++;
+      
+      if (currentStep <= totalSteps) {
+        // Calculate the ambulance's current position
+        setAmbulanceLocation([
+          startLocation[0] + latDiff * currentStep,
+          startLocation[1] + lngDiff * currentStep
+        ]);
+        
+        // Calculate the elapsed time
+        const elapsedMs = Date.now() - startTimeRef.current;
+        // Calculate the remaining time in minutes (more realistic)
+        const remainingMinutes = Math.ceil((totalTripDuration - elapsedMs) / (60 * 1000));
+        setAmbulanceETA(Math.max(1, remainingMinutes));
+        
+        // If we've used up all the time, force arrival
+        if (elapsedMs >= totalTripDuration || currentStep === totalSteps) {
+          clearInterval(moveIntervalRef.current);
+          setAmbulanceLocation(endLocation);
+          setStage("arrived");
+        }
+      }
+    }, totalTripDuration / totalSteps); // Interval based on total trip duration
+    
+    return () => {
+      if (moveIntervalRef.current) {
+        clearInterval(moveIntervalRef.current);
+      }
+    };
+  }, [stage, startLocation, endLocation, setAmbulanceLocation, setAmbulanceETA, setStage]);
+  
+  return null;
+}
+
+const TrackAmbulance = () => {
+  const [stage, setStage] = useState("initial"); // initial -> searching -> found -> enroute -> arrived
+  const [userLocation, setUserLocation] = useState(null);
+  const [ambulanceLocation, setAmbulanceLocation] = useState(null);
+  const [ambulanceETA, setAmbulanceETA] = useState(null);
+  const [ambulanceDetails, setAmbulanceDetails] = useState(null);
+  const [availableAmbulances, setAvailableAmbulances] = useState([]);
+
+  // Get user location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation([position.coords.latitude, position.coords.longitude]);
+          
+          // Generate some static nearby ambulances
+          const nearbyAmbulances = [];
+          for (let i = 0; i < 5; i++) {
+            // Generate position within 0.01-0.03 degrees (roughly 1-3km)
+            const offsetLat = (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
+            const offsetLng = (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
+            
+            nearbyAmbulances.push({
+              id: "AMB-" + Math.floor(1000 + Math.random() * 9000),
+              position: [
+                position.coords.latitude + offsetLat,
+                position.coords.longitude + offsetLng
+              ],
+              driver: ["Dr. Rajesh Kumar", "Dr. Priya Singh", "Dr. Amit Patel", "Dr. Neha Sharma", "Dr. Sanjay Gupta"][i % 5],
+              phone: "+91 98765 " + Math.floor(10000 + Math.random() * 90000),
+              vehicle: ["Life Support Ambulance", "Basic Ambulance", "Cardiac Ambulance", "Neonatal Ambulance", "Mobile ICU"][i % 5],
+              license: "DL " + Math.floor(10 + Math.random() * 90) + " " + 
+                       String.fromCharCode(65 + Math.floor(Math.random() * 26)) + 
+                       String.fromCharCode(65 + Math.floor(Math.random() * 26)) + " " + 
+                       Math.floor(1000 + Math.random() * 9000)
+            });
+          }
+          
+          setAvailableAmbulances(nearbyAmbulances);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          // Default location if geolocation fails
+          setUserLocation([28.6139, 77.2090]); // New Delhi coordinates as default
+        }
+      );
+    }
+  }, []);
+
+  // Call ambulance function
+  const callAmbulance = () => {
+    setStage("searching");
+    
+    // After 5 seconds, select the nearest ambulance
+    setTimeout(() => {
+      if (availableAmbulances.length > 0) {
+        // Select the first ambulance (in a real app, you'd select the nearest one)
+        const selectedAmbulance = availableAmbulances[0];
+        
+        setAmbulanceLocation(selectedAmbulance.position);
+        setAmbulanceDetails({
+          id: selectedAmbulance.id,
+          driver: selectedAmbulance.driver,
+          phone: selectedAmbulance.phone,
+          vehicle: selectedAmbulance.vehicle,
+          license: selectedAmbulance.license
+        });
+        
+        setStage("found");
+        // Calculate rough ETA - in real app would use actual distance calculation
+        setAmbulanceETA(10); // Start with 10 minutes
+        
+        // After 3 seconds, start the ambulance movement
+        setTimeout(() => {
+          setStage("enroute");
+        }, 3000);
+      }
+    }, 5000);
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0b1a] pt-20 pb-10 px-4">
-      <div className="max-w-5xl mx-auto space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+    <div className="min-h-screen pt-16 bg-[#0a0b1d] text-white">
+      <div className="container mx-auto px-4 py-8">
+        <motion.h1 
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-4"
+          className="text-4xl font-bold text-center mb-8"
         >
-          <h1 className="text-5xl font-bold text-white">Story Forge</h1>
-          <p className="text-gray-400 text-lg">
-            Transform your ideas into captivating stories
-          </p>
-        </motion.div>
-
-        {/* Alert */}
-        {showAlert && (
-          <MuiAlert
-            severity="warning"
-            onClose={() => setShowAlert(false)}
-            sx={{ mb: 2 }}
-          >
-            Please select a genre and enter a prompt before generating.
-          </MuiAlert>
-        )}
-
-        {/* Genre Selection */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"
-        >
-          {genres.map((genre) => (
-            <motion.button
-              key={genre.name}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedGenre(genre.name)}
-              className={`p-4 rounded-xl bg-gradient-to-r ${genre.color} 
-                ${selectedGenre === genre.name ? "ring-2 ring-white" : "opacity-70"}
-                transition-all duration-300`}
-            >
-              <div className="text-2xl mb-2">{genre.icon}</div>
-              <div className="text-white font-medium">{genre.name}</div>
-            </motion.button>
-          ))}
-        </motion.div>
-
-        {/* Story Configuration */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-[#13142d] rounded-xl p-6 shadow-lg space-y-6"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white">
-              <Settings2 size={20} />
-              <span>Story Settings</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="text-gray-400">Word Count:</label>
-              <input
-                type="range"
-                min="100"
-                max="2000"
-                step="100"
-                value={wordCount}
-                onChange={(e) => setWordCount(e.target.value)}
-                className="w-32"
-              />
-              <span className="text-white">{wordCount}</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-white">
-              <Type size={20} />
-              <span>Enter your prompt</span>
-            </div>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full h-32 p-4 rounded-lg bg-[#1a1b3d] text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              placeholder="Describe your story idea in detail..."
-            />
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => setPrompt("")}
-                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          Emergency Ambulance Tracking
+        </motion.h1>
+        
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Map Section */}
+          <div className="w-full md:w-2/3 h-[70vh] bg-gray-800 rounded-lg overflow-hidden relative">
+            {userLocation ? (
+              <MapContainer
+                center={userLocation}
+                zoom={15}
+                style={{ height: "100%", width: "100%" }}
               >
-                <RotateCcw size={16} />
-                Clear
-              </button>
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium hover:from-blue-700 hover:to-purple-700 transition-all ${
-                  isGenerating ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles size={16} />
-                    Generate Story
-                  </>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                
+                {/* User location marker */}
+                {userLocation && (
+                  <Marker position={userLocation}>
+                    <Popup>
+                      Your Location
+                    </Popup>
+                  </Marker>
                 )}
-              </button>
-            </div>
+                
+                {/* Available ambulances (only visible at initial stage) */}
+                {stage === "initial" && availableAmbulances.map((amb) => (
+                  <Marker key={amb.id} position={amb.position} icon={ambulanceIcon}>
+                    <Popup>
+                      Ambulance {amb.id}
+                      <br />
+                      Driver: {amb.driver}
+                    </Popup>
+                  </Marker>
+                ))}
+                
+                {/* Selected ambulance (visible during found and enroute stages) */}
+                {ambulanceLocation && (stage === "found" || stage === "enroute" || stage === "arrived") && (
+                  <Marker position={ambulanceLocation} icon={ambulanceIcon}>
+                    <Popup>
+                      Ambulance {ambulanceDetails?.id}
+                      <br />
+                      Driver: {ambulanceDetails?.driver}
+                      <br />
+                      ETA: {ambulanceETA} {ambulanceETA === 1 ? 'minute' : 'minutes'}
+                    </Popup>
+                  </Marker>
+                )}
+                
+                {/* Map scanning effect */}
+                <MapScan isSearching={stage === "searching"} center={userLocation} />
+                
+                {/* Ambulance movement handler */}
+                {userLocation && ambulanceLocation && stage === "enroute" && (
+                  <AmbulanceMovement 
+                    startLocation={ambulanceLocation}
+                    endLocation={userLocation}
+                    stage={stage}
+                    setStage={setStage}
+                    setAmbulanceLocation={setAmbulanceLocation}
+                    setAmbulanceETA={setAmbulanceETA}
+                  />
+                )}
+                
+                <SetViewOnLocation coords={userLocation} />
+              </MapContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
+              </div>
+            )}
           </div>
-
-          {/* Speech-to-Text Section */}
-          <div className="flex items-center gap-4">
-            <label className="text-gray-400">Language:</label>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="p-2 rounded-lg bg-[#1a1b3d] text-white"
-            >
-              <option value="en-US">English</option>
-              <option value="hi-IN">Hindi</option>
-            </select>
-            <button
-              onClick={startSpeechToText}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium hover:from-green-700 hover:to-teal-700 transition-all ${
-                isListening ? "animate-pulse" : ""
-              }`}
-            >
-              <Mic size={16} />
-              {isListening ? "Listening..." : "Speech-to-Text"}
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Generated Story Box */}
-        {generatedStory && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#13142d] rounded-xl p-6 shadow-lg"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 text-white">
-                  <Book size={20} />
-                  <span>Generated Story</span>
+          
+          {/* Control Panel */}
+          <div className="w-full md:w-1/3 bg-[#13142d] rounded-lg p-6">
+            <h2 className="text-2xl font-bold mb-6">Emergency Response</h2>
+            
+            {stage === "initial" && (
+              <div>
+                <p className="mb-4">
+                  Press the emergency button to call an ambulance to your current location.
+                </p>
+                <button 
+                  onClick={callAmbulance}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg text-xl transition duration-300 flex items-center justify-center gap-2"
+                >
+                  <span className="animate-pulse">●</span> 
+                  CALL AMBULANCE NOW
+                </button>
+              </div>
+            )}
+            
+            {stage === "searching" && (
+              <div>
+                <p className="mb-4 text-center">
+                  Scanning for the nearest available ambulance...
+                </p>
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-400"></div>
                 </div>
-                {storyMetadata.title && (
-                  <div className="text-white text-lg font-semibold">
-                    {storyMetadata.title}
+              </div>
+            )}
+            
+            {(stage === "found" || stage === "enroute" || stage === "arrived") && ambulanceDetails && (
+              <div>
+                <div className="bg-[#1c1d3e] p-4 rounded-lg mb-6">
+                  <h3 className="font-bold text-yellow-400 mb-2">Ambulance Details</h3>
+                  <p><span className="text-gray-400">ID:</span> {ambulanceDetails.id}</p>
+                  <p><span className="text-gray-400">Type:</span> {ambulanceDetails.vehicle}</p>
+                  <p><span className="text-gray-400">Driver:</span> {ambulanceDetails.driver}</p>
+                  <p><span className="text-gray-400">Contact:</span> {ambulanceDetails.phone}</p>
+                  <p><span className="text-gray-400">License:</span> {ambulanceDetails.license}</p>
+                </div>
+                
+                {stage === "found" && (
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-400 mb-2">Ambulance Found!</p>
+                    <p>An ambulance has been dispatched to your location.</p>
+                    <p className="mt-4 text-xl">
+                      Estimated Time of Arrival: <span className="text-yellow-400 font-bold">{ambulanceETA} minutes</span>
+                    </p>
+                  </div>
+                )}
+                
+                {stage === "enroute" && (
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-400 mb-2">Ambulance En Route</p>
+                    <p>Your ambulance is on the way to your location.</p>
+                    <div className="mt-4 mb-4 bg-[#0a0b1d] p-3 rounded-lg">
+                      <p className="text-xl">
+                        Estimated Time of Arrival: 
+                      </p>
+                      <p className="text-3xl text-yellow-400 font-bold">
+                        {ambulanceETA} {ambulanceETA === 1 ? 'minute' : 'minutes'}
+                      </p>
+                      <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
+                        <div className="bg-yellow-400 h-2.5 rounded-full" style={{ width: `${(10 - Math.min(ambulanceETA, 10)) * 10}%` }}></div>
+                      </div>
+                    </div>
+                    <button 
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      onClick={() => window.open(`tel:${ambulanceDetails.phone}`)}
+                    >
+                      Call Driver
+                    </button>
+                  </div>
+                )}
+                
+                {stage === "arrived" && (
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-green-400 mb-2">Ambulance Has Arrived!</p>
+                    <p>Your ambulance has arrived at your location.</p>
+                    <p className="mt-4">Please prepare for immediate medical assistance.</p>
+                    <button 
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                      onClick={() => window.open(`tel:${ambulanceDetails.phone}`)}
+                    >
+                      Call Driver
+                    </button>
                   </div>
                 )}
               </div>
-              <button className="text-gray-400 hover:text-white transition-colors">
-                <History size={20} />
-              </button>
-            </div>
-            <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300">{generatedStory}</p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Story Metadata Section */}
-        {generatedStory && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#1a1b3d] rounded-xl p-6 shadow-lg"
-          >
-            <h2 className="text-2xl font-bold text-white mb-4">Story Metadata</h2>
-            <div className="text-white mb-2">
-              <strong>Title:</strong> {storyMetadata.title}
-            </div>
-            <div className="text-white mb-2">
-              <strong>Genre:</strong> {storyMetadata.genre}
-            </div>
-            <div className="text-white">
-              <strong>Premise:</strong> {storyMetadata.premise}
-            </div>
-          </motion.div>
-        )}
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
