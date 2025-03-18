@@ -1,0 +1,492 @@
+import React, { useState, useEffect } from "react";
+import { Pill, PlusCircle, Bell, Trash2, Edit, CheckCircle, Calendar } from "lucide-react";
+import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc, where } from "firebase/firestore";
+import { firestore } from "../firebase/config";
+const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth = false }) => {
+  const [reminders, setReminders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentReminder, setCurrentReminder] = useState(null);
+  
+  // Form state
+  const [medicationName, setMedicationName] = useState("");
+  const [dosage, setDosage] = useState("");
+  const [frequency, setFrequency] = useState("daily");
+  const [times, setTimes] = useState(["08:00"]);
+  const [notes, setNotes] = useState("");
+
+  useEffect(() => {
+    if (userId) {
+      fetchReminders();
+    }
+  }, [userId]);
+
+  const fetchReminders = async () => {
+    setLoading(true);
+    try {
+      const remindersRef = collection(firestore, "medicationReminders");
+      const q = query(remindersRef, where("userId", "==", userId));
+      const querySnapshot = await getDocs(q);
+      
+      let fetchedReminders = [];
+      querySnapshot.forEach((doc) => {
+        fetchedReminders.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // Sort by next dose time
+      fetchedReminders.sort((a, b) => {
+        const aNextTime = getNextDoseTime(a);
+        const bNextTime = getNextDoseTime(b);
+        return aNextTime - bNextTime;
+      });
+      
+      if (limit) {
+        fetchedReminders = fetchedReminders.slice(0, limit);
+      }
+      
+      setReminders(fetchedReminders);
+    } catch (error) {
+      console.error("Error fetching reminders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getNextDoseTime = (reminder) => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    for (const time of reminder.times) {
+      const [hours, minutes] = time.split(':');
+      const doseTime = new Date(today);
+      doseTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+      
+      if (doseTime > now) {
+        return doseTime;
+      }
+    }
+    
+    // If all times today are in the past, get the first time tomorrow
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const [hours, minutes] = reminder.times[0].split(':');
+    const doseTime = new Date(tomorrowStr);
+    doseTime.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    return doseTime;
+  };
+
+  const formatNextDose = (reminder) => {
+    const nextDose = getNextDoseTime(reminder);
+    const now = new Date();
+    const diffMs = nextDose - now;
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHrs > 0) {
+      return `${diffHrs}h ${diffMins}m`;
+    } else {
+      return `${diffMins}m`;
+    }
+  };
+
+  const handleAddReminder = async () => {
+    try {
+      const newReminder = {
+        userId,
+        medicationName,
+        dosage,
+        frequency,
+        times,
+        notes,
+        createdAt: new Date(),
+      };
+      
+      await addDoc(collection(firestore, "medicationReminders"), newReminder);
+      resetForm();
+      setShowAddModal(false);
+      fetchReminders();
+    } catch (error) {
+      console.error("Error adding reminder:", error);
+    }
+  };
+
+  const handleEditReminder = async () => {
+    try {
+      const reminderRef = doc(firestore, "medicationReminders", currentReminder.id);
+      await updateDoc(reminderRef, {
+        medicationName,
+        dosage,
+        frequency,
+        times,
+        notes,
+        updatedAt: new Date(),
+      });
+      
+      resetForm();
+      setShowEditModal(false);
+      setCurrentReminder(null);
+      fetchReminders();
+    } catch (error) {
+      console.error("Error updating reminder:", error);
+    }
+  };
+
+  const handleDeleteReminder = async (reminderId) => {
+    if (window.confirm("Are you sure you want to delete this medication reminder?")) {
+      try {
+        const reminderRef = doc(firestore, "medicationReminders", reminderId);
+        await deleteDoc(reminderRef);
+        fetchReminders();
+      } catch (error) {
+        console.error("Error deleting reminder:", error);
+      }
+    }
+  };
+
+  const openEditModal = (reminder) => {
+    setCurrentReminder(reminder);
+    setMedicationName(reminder.medicationName);
+    setDosage(reminder.dosage);
+    setFrequency(reminder.frequency);
+    setTimes([...reminder.times]);
+    setNotes(reminder.notes || "");
+    setShowEditModal(true);
+  };
+
+  const resetForm = () => {
+    setMedicationName("");
+    setDosage("");
+    setFrequency("daily");
+    setTimes(["08:00"]);
+    setNotes("");
+  };
+
+  const addTimeField = () => {
+    setTimes([...times, "12:00"]);
+  };
+
+  const removeTimeField = (index) => {
+    if (times.length <= 1) return;
+    const newTimes = [...times];
+    newTimes.splice(index, 1);
+    setTimes(newTimes);
+  };
+
+  const updateTime = (index, value) => {
+    const newTimes = [...times];
+    newTimes[index] = value;
+    setTimes(newTimes);
+  };
+
+  return (
+    <div className={`bg-white rounded-lg shadow-md p-4 ${fullWidth ? 'w-full' : 'max-w-md'}`}>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold flex items-center">
+          <Pill className="mr-2" size={20} />
+          Medication Reminders
+        </h2>
+        {showAddButton && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center text-blue-500 hover:text-blue-700"
+          >
+            <PlusCircle size={18} className="mr-1" />
+            Add
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-4">
+          <p>Loading reminders...</p>
+        </div>
+      ) : reminders.length === 0 ? (
+        <div className="text-center py-6 text-gray-500">
+          <Bell size={40} className="mx-auto mb-2 opacity-30" />
+          <p>No medication reminders set</p>
+          {showAddButton && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="mt-2 text-blue-500 hover:text-blue-700"
+            >
+              Add your first reminder
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {reminders.map((reminder) => (
+            <div key={reminder.id} className="border rounded-lg p-3 hover:bg-gray-50">
+              <div className="flex justify-between">
+                <div>
+                  <h3 className="font-medium">{reminder.medicationName}</h3>
+                  <p className="text-sm text-gray-600">{reminder.dosage}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => openEditModal(reminder)}
+                    className="text-gray-400 hover:text-blue-500"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteReminder(reminder.id)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+              <div className="mt-2 text-sm flex items-center">
+                <Calendar size={14} className="mr-1" />
+                <span className="text-gray-600">
+                  {reminder.frequency === "daily" ? "Daily" : "Custom"}
+                </span>
+                <span className="mx-2">•</span>
+                <Bell size={14} className="mr-1" />
+                <span className="text-gray-600">
+                  {reminder.times.join(", ")}
+                </span>
+              </div>
+              <div className="mt-1 text-xs bg-blue-50 text-blue-700 rounded px-2 py-1 inline-block">
+                Next dose in {formatNextDose(reminder)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add Reminder Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Medication Reminder</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Medication Name
+                </label>
+                <input
+                  type="text"
+                  value={medicationName}
+                  onChange={(e) => setMedicationName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  placeholder="e.g. Aspirin"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dosage
+                </label>
+                <input
+                  type="text"
+                  value={dosage}
+                  onChange={(e) => setDosage(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  placeholder="e.g. 100mg, 1 tablet"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Frequency
+                </label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reminder Times
+                </label>
+                {times.map((time, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => updateTime(index, e.target.value)}
+                      className="px-3 py-2 border rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTimeField(index)}
+                      className="ml-2 text-red-500"
+                      disabled={times.length <= 1}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addTimeField}
+                  className="text-blue-500 text-sm flex items-center"
+                >
+                  <PlusCircle size={16} className="mr-1" />
+                  Add another time
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  rows="3"
+                  placeholder="Additional instructions or notes"
+                ></textarea>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowAddModal(false);
+                }}
+                className="px-4 py-2 border rounded-md text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddReminder}
+                disabled={!medicationName || !dosage || times.length === 0}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+              >
+                Add Reminder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Reminder Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Edit Medication Reminder</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Medication Name
+                </label>
+                <input
+                  type="text"
+                  value={medicationName}
+                  onChange={(e) => setMedicationName(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Dosage
+                </label>
+                <input
+                  type="text"
+                  value={dosage}
+                  onChange={(e) => setDosage(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Frequency
+                </label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reminder Times
+                </label>
+                {times.map((time, index) => (
+                  <div key={index} className="flex items-center mb-2">
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => updateTime(index, e.target.value)}
+                      className="px-3 py-2 border rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTimeField(index)}
+                      className="ml-2 text-red-500"
+                      disabled={times.length <= 1}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addTimeField}
+                  className="text-blue-500 text-sm flex items-center"
+                >
+                  <PlusCircle size={16} className="mr-1" />
+                  Add another time
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowEditModal(false);
+                  setCurrentReminder(null);
+                }}
+                className="px-4 py-2 border rounded-md text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditReminder}
+                disabled={!medicationName || !dosage || times.length === 0}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300"
+              >
+                Update Reminder
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MedicationReminders;

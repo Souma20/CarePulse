@@ -22,8 +22,10 @@ const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
+const firestore = getFirestore(app);
+
 export const storage = getStorage(app);
 
 
 
-export { auth, googleProvider, analytics, db, PhoneAuthProvider , RecaptchaVerifier };
+export { auth, googleProvider, analytics, db, PhoneAuthProvider , RecaptchaVerifier, firestore };
