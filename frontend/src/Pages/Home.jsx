@@ -52,7 +52,7 @@ const Home = () => {
               onClick={() => navigate('/generate-images')}
               className="bg-gradient-to-r from-yellow-900 to-yellow-700 text-white px-6 py-3 rounded-full text-lg font-semibold shadow-lg hover:scale-105 transition duration-300"
             >
-              Generate Images
+              AI Diagnosis
             </button>
             <button
               onClick={() => navigate('/story-generator')}

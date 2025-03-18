@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { getFunctions, httpsCallable } from "firebase/functions";
+import { Resend } from 'resend'; // Install with: npm install resend
 
 const EmergencyButton = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -9,6 +9,11 @@ const EmergencyButton = () => {
   const [address, setAddress] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState(null);
+
+  // WARNING: NEVER expose API keys in the frontend for production apps
+  // This is for development/demo purposes only
+  const resend = new Resend('re_ZWa3WLgR_2kWo9PysCjhSzwDZe75zgzVq'); // For Vite projects
+  // OR use process.env.REACT_APP_RESEND_API_KEY for Create React App
 
   const emergencyServices = {
     police: {
@@ -82,23 +87,43 @@ const EmergencyButton = () => {
     setSendStatus(null);
     
     try {
-      // Get Firebase Functions instance
-      const functions = getFunctions();
-      // Get the sendEmergencyAlert function
-      const sendAlert = httpsCallable(functions, 'sendEmergencyAlert');
+      const mapsLink = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
       
-      // Call the function
-      const result = await sendAlert({
-        services: selectedServices,
-        location,
-        address
+      // Create array of email promises
+      const emailPromises = selectedServices.map(service => {
+        const serviceInfo = emergencyServices[service];
+        
+        return resend.emails.send({
+          from: 'Emergency Alert System <alerts@yourdomain.com>', // Replace with your verified domain
+          to: [serviceInfo.email],
+          subject: `EMERGENCY ALERT: ${serviceInfo.label} needed`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+              <h1 style="color: #d32f2f; text-align: center;">URGENT HELP NEEDED!</h1>
+              <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+                🚨 ${serviceInfo.icon} ${serviceInfo.label} Emergency Alert 🚨
+              </div>
+              
+              <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0; color: #333;">Location Details:</h3>
+                <p style="margin-bottom: 5px;"><strong>Latitude:</strong> ${location.latitude}</p>
+                <p style="margin-bottom: 5px;"><strong>Longitude:</strong> ${location.longitude}</p>
+                ${address ? `<p style="margin-bottom: 5px;"><strong>Address:</strong> ${address}</p>` : ''}
+              </div>
+              
+              <div style="text-align: center; margin: 25px 0;">
+                <a href="${mapsLink}" style="display: inline-block; padding: 12px 24px; background-color: #d32f2f; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">View on Google Maps</a>
+              </div>
+              
+              <p style="text-align: center; color: #666; font-size: 14px; margin-top: 30px;">
+                Sent from Emergency Response System
+              </p>
+            </div>
+          `
+        });
       });
       
-      const data = result.data;
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to send alert');
-      }
+      await Promise.all(emailPromises);
       
       setSendStatus('success');
       setTimeout(() => {
@@ -109,7 +134,7 @@ const EmergencyButton = () => {
     } catch (error) {
       console.error("Error sending emergency alert:", error);
       
-      // Fallback to mailto if Firebase function fails
+      // Fallback to mailto if API call fails
       try {
         const mapsLink = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
         
