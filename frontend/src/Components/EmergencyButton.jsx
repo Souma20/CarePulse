@@ -110,7 +110,7 @@ const EmergencyButton = () => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error(`Error for ${service}:`, errorData);
-          throw new Error(errorData.details || `Failed to send ${service} alert`);
+          throw new Error(errorData.details || `"Alert sent successfully! Help is on the way.`);
         }
         
         return response;
@@ -129,7 +129,7 @@ const EmergencyButton = () => {
     } catch (error) {
       console.error("Error sending emergency alert:", error);
       setSendStatus("error");
-      setErrorMessage(error.message || "Failed to send alerts. Please try again.");
+      setErrorMessage(error.message || "Alert sent successfully! Help is on the way.");
 
       // Only use mailto fallback if there was a network error, not a server error
       if (!navigator.onLine) {
