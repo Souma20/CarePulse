@@ -203,32 +203,32 @@ const Home = () => {
             {
               title: "📖 First Aid Guides",
               description: "Step-by-step medical emergency instructions to help you act quickly.",
-              img: "/images/first-aid.jpg"
+              img: "/images/first-aid.png"
             },
             {
               title: "📅 Appointment Booking",
               description: "Instantly connect with nearby healthcare professionals and book appointments.",
-              img: "/images/appointment.jpg"
+              img: "/images/appointment.png"
             },
             {
               title: "👥 Community Support",
               description: "Join discussions, share experiences, and get medical advice from professionals.",
-              img: "/images/community.jpg"
+              img: "/images/community.png"
             },
             {
               title: "🛠 AI Symptom Checker",
               description: "Enter your symptoms and get AI-based preliminary diagnosis recommendations.",
-              img: "/images/ai-symptom.jpg"
+              img: "/images/ai-symptom.png"
             },
             {
               title: "🚑 Emergency Call Assistance",
               description: "Connect instantly with local emergency responders in a crisis.",
-              img: "/images/emergency-call.jpg"
+              img: "/images/emergency-call.png"
             },
             {
               title: "📡 Live Health Monitoring",
               description: "Track your vitals and receive alerts for potential health risks.",
-              img: "/images/live-health.jpg"
+              img: "/images/live-health.png"
             }
           ].map((feature, index) => (
             <motion.div 
