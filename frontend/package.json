@@ -18,6 +18,7 @@
     "@mui/icons-material": "^6.1.1",
     "@mui/material": "^6.4.5",
     "@mui/x-charts": "^7.17.0",
+    "@react-oauth/google": "^0.12.1",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
     "firebase": "^11.3.1",
@@ -37,7 +38,7 @@
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.29.0",
     "react-speech-recognition": "^3.10.0",
-    "recharts": "^2.12.7",
+    "recharts": "^2.15.1",
     "regenerator-runtime": "^0.14.1",
     "resend": "^4.1.2",
     "three": "^0.168.0"

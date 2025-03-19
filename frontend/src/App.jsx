@@ -12,6 +12,7 @@ import Register from "./Pages/register";
 import Blog from "./Pages/Blog";
 import Logi from "./Pages/login";
 import ContactUs from "./Pages/ContactUs";
+import GoogleFitIntegration from './components/GoogleFitIntegration';
 
 import { auth } from './firebase/config';
 import StoryGenerator from "./Pages/StoryGenerator";
