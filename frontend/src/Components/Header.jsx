@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase/config";
 
@@ -72,12 +72,22 @@ const Header = () => {
           {loading ? (
             <span className="text-white opacity-70">Loading...</span>
           ) : user ? (
-            <button
-              onClick={handleLogout}
-              className="text-white hover:text-yellow-400 transition duration-300"
-            >
-              Logout
-            </button>
+            <div className="flex items-center space-x-4">
+              <Link 
+                to="/dashboard" 
+                className="flex items-center text-white hover:text-yellow-400 transition duration-300"
+              >
+                <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <User size={20} color="black" />
+                </div>
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-white hover:text-yellow-400 transition duration-300"
+              >
+                Logout
+              </button>
+            </div>
           ) : (
             <NavLink to="/login" isActive={location.pathname === "/login"}>
               Login
@@ -119,15 +129,25 @@ const Header = () => {
           {loading ? (
             <span className="text-white opacity-70">Loading...</span>
           ) : user ? (
-            <button
-              onClick={() => {
-                handleLogout();
-                setMenuOpen(false);
-              }}
-              className="text-white hover:text-yellow-400 transition duration-300"
-            >
-              Logout
-            </button>
+            <div className="flex flex-col space-y-4">
+              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/dashboard"}>
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                    <User size={20} color="black" />
+                  </div>
+                  <span>Dashboard</span>
+                </div>
+              </NavLink>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setMenuOpen(false);
+                }}
+                className="text-white hover:text-yellow-400 transition duration-300"
+              >
+                Logout
+              </button>
+            </div>
           ) : (
             <NavLink to="/login" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/login"}>
               Login

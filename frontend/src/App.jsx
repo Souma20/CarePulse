@@ -16,6 +16,8 @@ import ContactUs from "./Pages/ContactUs";
 import { auth } from './firebase/config';
 import StoryGenerator from "./Pages/StoryGenerator";
 import StoryFeedback from "./Pages/Feedback";
+// This is a placeholder import - you'll create this component yourself
+import Dashboard from "./Pages/Dashboard";
 
 console.log('App component rendering');
 
@@ -53,13 +55,21 @@ const App = () => {
                 </ProtectedRoute>
               } 
             />
-              <Route path="/text-editor" element={<TextEditor />} />
+            <Route path="/text-editor" element={<TextEditor />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Logi />} />              
             <Route path="/generate-images" element={<ImageGeneratorPage />} />
             <Route path="/ambulance-tracker" element={<StoryGenerator />} />
             <Route path="/feedback" element={<StoryFeedback />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
           <Footer />
         </BrowserRouter>
