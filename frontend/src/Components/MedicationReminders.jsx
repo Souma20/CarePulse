@@ -29,7 +29,7 @@ const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth =
     }
     
     // Create audio element
-    alarmSound.current = new Audio("/sounds/pill_reminder.mp3");
+    alarmSound.current = new Audio("ringtone.mp3");
     alarmSound.current.loop = true;
     
     // Cleanup function
