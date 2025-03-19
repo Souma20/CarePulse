@@ -15,12 +15,14 @@
     "@emotion/styled": "^11.14.0",
     "@fontsource/dancing-script": "^5.1.1",
     "@google/generative-ai": "^0.22.0",
-    "@mui/icons-material": "^6.1.1",
-    "@mui/material": "^6.4.5",
+    "@mediapipe/tasks-vision": "^0.10.22-rc.20250304",
+    "@mui/icons-material": "^6.4.8",
+    "@mui/material": "^6.4.8",
     "@mui/x-charts": "^7.17.0",
     "@react-oauth/google": "^0.12.1",
     "axios": "^1.7.9",
     "date-fns": "^4.1.0",
+    "face-api.js": "^0.22.2",
     "firebase": "^11.3.1",
     "framer-motion": "^11.18.2",
     "frontend": "file:",
@@ -30,6 +32,7 @@
     "leaflet-routing-machine": "^3.2.12",
     "lucide-react": "^0.441.0",
     "openai": "^4.85.4",
+    "peerjs": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-firebase-hooks": "^5.1.1",
@@ -57,7 +60,7 @@
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
     "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.12",
+    "tailwindcss": "^3.4.17",
     "vite": "^5.4.1"
   }
 }

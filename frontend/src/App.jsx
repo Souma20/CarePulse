@@ -13,12 +13,15 @@ import Blog from "./Pages/Blog";
 import Logi from "./Pages/login";
 import ContactUs from "./Pages/ContactUs";
 import GoogleFitIntegration from './components/GoogleFitIntegration';
-
 import { auth } from './firebase/config';
 import StoryGenerator from "./Pages/StoryGenerator";
 import StoryFeedback from "./Pages/Feedback";
-// This is a placeholder import - you'll create this component yourself
 import Dashboard from "./Pages/Dashboard";
+import AccidentDetection from "./Pages/AccidentDetection";
+import FaceRecognition from "./Pages/FaceRecognition";
+
+// Import the new VideoCall page
+import VideoCall from "./Pages/VideoCall";
 
 console.log('App component rendering');
 
@@ -71,6 +74,10 @@ const App = () => {
                 </ProtectedRoute>
               } 
             />
+            <Route path="/accident-detection" element={<AccidentDetection />} />
+            <Route path="/face-recognition" element={<FaceRecognition />} />
+            {/* New route for video call */}
+            <Route path="/video-call" element={<VideoCall />} />
           </Routes>
           <Footer />
         </BrowserRouter>
