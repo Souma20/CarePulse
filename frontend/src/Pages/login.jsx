@@ -106,7 +106,7 @@ function Login() {
               className="w-full p-3 bg-white text-gray-800 rounded-lg transition duration-300 hover:bg-gray-100 flex items-center justify-center gap-2 disabled:opacity-50"
               disabled={loading}
             >
-              <img src="/google-icon.png" alt="Google" className="w-5 h-5" />
+              <img src="/images/google-icon.webp" alt="Google" className="w-5 h-5" />
               {loading ? "Processing..." : "Sign in with Google"}
             </button>
           </form>
@@ -119,7 +119,7 @@ function Login() {
       </div>
       <div className="flex-[0.7] hidden md:block">
         <img
-          src="https://images.unsplash.com/photo-1419640303358-44f0d27f48e7?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZGFyayUyMGJvb2t8ZW58MHx8MHx8fDA%3D"
+          src="images/login.jpg"
           alt="Login background"
           className="w-full h-full object-cover"
         />

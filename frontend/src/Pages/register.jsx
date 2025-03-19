@@ -99,7 +99,7 @@ export const Register = () => {
       {/* Left Section */}
       <div className="flex-[0.4] hidden md:block">
         <img
-          src="https://plus.unsplash.com/premium_photo-1695322790437-d27413ea61da?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8ZGFyayUyMGxpYnJhcnl8ZW58MHx8MHx8fDA%3D"
+          src="images/signup.jpg"
           alt="Register background"
           className="w-full h-full object-cover"
         />
@@ -205,7 +205,7 @@ export const Register = () => {
                 className="w-full p-3 bg-white text-gray-800 rounded-lg transition duration-300 hover:bg-gray-100 flex items-center justify-center gap-2 disabled:opacity-50"
                 disabled={loading}
               >
-                <img src="/google-icon.png" alt="Google" className="w-5 h-5" />
+                <img src="/images/google-icon.webp" alt="Google" className="w-5 h-5" />
                 {loading ? "Processing..." : "Sign up with Google"}
               </button>
             </form>
