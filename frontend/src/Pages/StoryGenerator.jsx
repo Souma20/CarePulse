@@ -473,9 +473,9 @@ const EmergencyResponse = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black text-white">
-      {/* Header Bar */}
-      <header className="bg-black/50 backdrop-blur-lg border-b border-white/10 py-3 px-6 flex items-center justify-between sticky top-0 z-10">
+    <div className="bg-gradient-to-b from-[#0d0e24] to-[#131438] text-white pb-16 mb-16">
+      
+      <section className="bg-[#0d0e24]/70 backdrop-blur-lg border-b border-white/10 py-3 px-6 flex items-center justify-between mt-12 z-10">
         <div className="flex items-center">
           <motion.div
             initial={{ rotate: -20, scale: 0.8 }}
@@ -512,14 +512,13 @@ const EmergencyResponse = () => {
               : "Arrived"}
           </div>
         </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-4">
+        </section>
+      <div className="container mx-auto px-4 py-8">
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left column - Map */}
           <div className="w-full lg:w-2/3">
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden relative border border-white/10 h-[70vh]">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden relative border border-white/10 h-[60vh]">
               {userLocation ? (
                 <MapContainer center={userLocation} zoom={15} style={{ height: "100%", width: "100%" }}>
                   <TileLayer
