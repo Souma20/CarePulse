@@ -5,6 +5,7 @@ import L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import "leaflet-routing-machine";
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Fix Leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -21,42 +22,51 @@ const ambulanceIcon = new L.Icon({
   popupAnchor: [0, -20],
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Framer Motion Variants
 const fadeInUp = {
   hidden: { opacity: 0, y: 50 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+  visible: {
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5 },
+  },
 };
 
 const bounceIn = {
   hidden: { opacity: 0, scale: 0.8 },
-  visible: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300 } },
+  visible: {
+    opacity: 1, 
+    scale: 1,
+    transition: { type: "spring", stiffness: 300 },
+  },
 };
 
 const buttonHover = {
   scale: 1.05,
-  boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.3)",
+  boxShadow: "0 0 8px rgba(255, 255, 255, 0.2), 0 0 20px rgba(255, 0, 85, 0.3) inset",
   transition: { duration: 0.2, ease: "easeInOut" },
 };
 
-// Component to update map view when coordinates change
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility components
 function SetViewOnLocation({ coords }) {
   const map = useMap();
   useEffect(() => {
     if (coords) {
-      console.log("Setting map view to:", coords);
       map.setView(coords, 15);
     }
   }, [coords, map]);
   return null;
 }
 
-// Scanning animation component
 function MapScan({ isSearching, center }) {
   const [radius, setRadius] = useState(0);
   const maxRadius = 1000; // meters
 
   useEffect(() => {
     if (!isSearching || !center) return;
+
     let animationFrame;
     const startTime = Date.now();
     const duration = 4000; // 4 seconds
@@ -65,15 +75,13 @@ function MapScan({ isSearching, center }) {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
       setRadius(progress * maxRadius);
-      if (progress < 1) animationFrame = requestAnimationFrame(animate);
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate);
+      }
     };
 
-    console.log("Starting scanning animation");
     animationFrame = requestAnimationFrame(animate);
-    return () => {
-      console.log("Cancelling scanning animation");
-      cancelAnimationFrame(animationFrame);
-    };
+    return () => cancelAnimationFrame(animationFrame);
   }, [isSearching, center]);
 
   if (!isSearching || !center) return null;
@@ -91,16 +99,16 @@ function MapScan({ isSearching, center }) {
   );
 }
 
-// Road route component using Leaflet Routing Machine
 function RoadRoute({ startLocation, endLocation, setRoutePath }) {
   const map = useMap();
   const routingControlRef = useRef(null);
 
   useEffect(() => {
     if (!startLocation || !endLocation || !map) return;
-    console.log("Creating road route from", startLocation, "to", endLocation);
 
-    if (routingControlRef.current) map.removeControl(routingControlRef.current);
+    if (routingControlRef.current) {
+      map.removeControl(routingControlRef.current);
+    }
 
     const routingControl = L.Routing.control({
       waypoints: [
@@ -122,7 +130,6 @@ function RoadRoute({ startLocation, endLocation, setRoutePath }) {
     routingControlRef.current = routingControl;
 
     routingControl.on("routesfound", (e) => {
-      console.log("Route found:", e.routes[0]);
       const coordinates = e.routes[0].coordinates.map((coord) => [coord.lat, coord.lng]);
       setRoutePath(coordinates);
     });
@@ -137,15 +144,20 @@ function RoadRoute({ startLocation, endLocation, setRoutePath }) {
   return null;
 }
 
-// Ambulance movement along the route
-function AmbulanceMovement({ routePath, stage, setStage, setAmbulanceLocation, setAmbulanceETA, setCompletedPath }) {
+function AmbulanceMovement({
+  routePath,
+  stage,
+  setStage,
+  setAmbulanceLocation,
+  setAmbulanceETA,
+  setCompletedPath,
+}) {
   const moveIntervalRef = useRef(null);
   const startTimeRef = useRef(null);
   const totalTripDuration = 10 * 60 * 1000; // 10 minutes
-  
+
   useEffect(() => {
     if (stage !== "enroute" || !routePath || routePath.length < 2) return;
-    console.log("Starting ambulance movement along route...");
 
     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
 
@@ -153,21 +165,21 @@ function AmbulanceMovement({ routePath, stage, setStage, setAmbulanceLocation, s
     const totalSteps = routePath.length - 1;
     let currentStep = 0;
 
+    // Start ambulance at the first point
     setAmbulanceLocation(routePath[0]);
     setCompletedPath([routePath[0]]);
 
     moveIntervalRef.current = setInterval(() => {
       currentStep++;
       if (currentStep < routePath.length) {
-        console.log("Moving to route point index:", currentStep);
         setAmbulanceLocation(routePath[currentStep]);
         setCompletedPath((prev) => [...prev, routePath[currentStep]]);
+
         const progress = currentStep / totalSteps;
         const remainingMinutes = Math.ceil((1 - progress) * (totalTripDuration / (60 * 1000)));
         setAmbulanceETA(Math.max(1, remainingMinutes));
 
         if (currentStep === totalSteps) {
-          console.log("Ambulance reached destination.");
           clearInterval(moveIntervalRef.current);
           setStage("arrived");
         }
@@ -175,7 +187,6 @@ function AmbulanceMovement({ routePath, stage, setStage, setAmbulanceLocation, s
     }, totalTripDuration / totalSteps);
 
     return () => {
-      console.log("Cleaning up ambulance movement interval.");
       if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
     };
   }, [stage, routePath, setAmbulanceLocation, setAmbulanceETA, setStage, setCompletedPath]);
@@ -183,6 +194,7 @@ function AmbulanceMovement({ routePath, stage, setStage, setAmbulanceLocation, s
   return null;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // Main StoryGenerator component
 const StoryGenerator = () => {
   const [stage, setStage] = useState("initial"); // initial, searching, found, enroute, arrived
@@ -195,16 +207,16 @@ const StoryGenerator = () => {
   const [completedPath, setCompletedPath] = useState([]);
   const [remainingPath, setRemainingPath] = useState([]);
 
-  // Get user location on mount
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Get user's location on mount
   useEffect(() => {
-    console.log("Getting user location...");
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const coords = [position.coords.latitude, position.coords.longitude];
-          console.log("User location set to:", coords);
           setUserLocation(coords);
-          // Generate static nearby ambulances
+
+          // Generate some static ambulances
           const ambulances = [];
           for (let i = 0; i < 5; i++) {
             const offsetLat = (Math.random() * 0.02 + 0.01) * (Math.random() > 0.5 ? 1 : -1);
@@ -215,24 +227,28 @@ const StoryGenerator = () => {
               driver: ["Dr. Rajesh Kumar", "Dr. Priya Singh", "Dr. Amit Patel", "Dr. Neha Sharma", "Dr. Sanjay Gupta"][i % 5],
               phone: "+91 98765 " + Math.floor(10000 + Math.random() * 90000),
               vehicle: ["Life Support Ambulance", "Basic Ambulance", "Cardiac Ambulance", "Neonatal Ambulance", "Mobile ICU"][i % 5],
-              license: "DL " + Math.floor(10 + Math.random() * 90) + " " +
-                       String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
-                       String.fromCharCode(65 + Math.floor(Math.random() * 26)) + " " +
-                       Math.floor(1000 + Math.random() * 9000)
+              license:
+                "DL " +
+                Math.floor(10 + Math.random() * 90) +
+                " " +
+                String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+                String.fromCharCode(65 + Math.floor(Math.random() * 26)) +
+                " " +
+                Math.floor(1000 + Math.random() * 9000),
             });
           }
-          console.log("Available ambulances:", ambulances);
           setAvailableAmbulances(ambulances);
         },
-        (error) => {
-          console.error("Error getting location:", error);
-          setUserLocation([28.6139, 77.2090]); // Default to New Delhi
+        () => {
+          // Default to New Delhi if geolocation fails
+          setUserLocation([28.6139, 77.2090]);
         }
       );
     }
   }, []);
 
-  // Update remaining path when route or completed path changes
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Update remaining path
   useEffect(() => {
     if (routePath && routePath.length > 0 && completedPath.length > 0) {
       const lastCompleted = completedPath[completedPath.length - 1];
@@ -244,20 +260,18 @@ const StoryGenerator = () => {
         }
       }
       const remaining = routePath.slice(lastIndex + 1);
-      console.log("Remaining path updated:", remaining);
       setRemainingPath(remaining);
     }
   }, [routePath, completedPath]);
 
-  // Function to simulate ambulance call
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Function to call an ambulance
   const callAmbulance = () => {
-    console.log("Ambulance call initiated. Changing stage to 'searching'.");
     setStage("searching");
-
+    // Simulate a short delay to "find" an ambulance
     setTimeout(() => {
       if (availableAmbulances.length > 0) {
         const selectedAmbulance = availableAmbulances[0];
-        console.log("Ambulance selected:", selectedAmbulance);
         setAmbulanceLocation(selectedAmbulance.position);
         setAmbulanceDetails({
           id: selectedAmbulance.id,
@@ -267,16 +281,17 @@ const StoryGenerator = () => {
           license: selectedAmbulance.license,
         });
         setStage("found");
-        setAmbulanceETA(10); // Rough ETA
-
+        setAmbulanceETA(10); // Rough initial ETA
+        // After 3s, ambulance starts moving
         setTimeout(() => {
-          console.log("Changing stage to 'enroute'.");
           setStage("enroute");
         }, 3000);
       }
     }, 5000);
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render
   return (
     <div className="min-h-screen pt-16 bg-gradient-to-b from-gray-900 to-black text-white">
       <div className="container mx-auto px-4 py-8">
@@ -291,11 +306,11 @@ const StoryGenerator = () => {
 
         <div className="flex flex-col md:flex-row gap-8">
           {/* Map Section */}
-          <div className="w-full md:w-2/3 h-[70vh] bg-gray-800 rounded-xl shadow-2xl overflow-hidden relative">
+          <div className="w-full md:w-2/3 h-[70vh] bg-white/10 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden relative border border-white/10">
             {userLocation ? (
               <MapContainer center={userLocation} zoom={15} style={{ height: "100%", width: "100%" }}>
                 <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
 
@@ -303,24 +318,24 @@ const StoryGenerator = () => {
                   <Popup>Your Location</Popup>
                 </Marker>
 
-                {stage === "initial" && availableAmbulances.map((amb) => (
-                  <Marker key={amb.id} position={amb.position} icon={ambulanceIcon}>
-                    <Popup>
-                      Ambulance {amb.id}
-                      <br />
-                      Driver: {amb.driver}
-                    </Popup>
-                  </Marker>
-                ))}
+                {/* Show available ambulances in initial stage */}
+                {stage === "initial" &&
+                  availableAmbulances.map((amb) => (
+                    <Marker key={amb.id} position={amb.position} icon={ambulanceIcon}>
+                      <Popup>
+                        Ambulance {amb.id}
+                        <br />
+                        Driver: {amb.driver}
+                      </Popup>
+                    </Marker>
+                  ))}
 
+                {/* Build route once ambulance is found */}
                 {stage === "found" && userLocation && ambulanceLocation && (
-                  <RoadRoute 
-                    startLocation={ambulanceLocation} 
-                    endLocation={userLocation} 
-                    setRoutePath={setRoutePath} 
-                  />
+                  <RoadRoute startLocation={ambulanceLocation} endLocation={userLocation} setRoutePath={setRoutePath} />
                 )}
 
+                {/* Completed route path (solid) */}
                 {completedPath.length > 1 && (
                   <Polyline
                     positions={completedPath}
@@ -328,6 +343,7 @@ const StoryGenerator = () => {
                   />
                 )}
 
+                {/* Remaining route path (dashed) */}
                 {remainingPath.length > 1 && (
                   <Polyline
                     positions={remainingPath}
@@ -335,6 +351,7 @@ const StoryGenerator = () => {
                   />
                 )}
 
+                {/* Ambulance marker during found/enroute/arrived */}
                 {ambulanceLocation && (stage === "found" || stage === "enroute" || stage === "arrived") && (
                   <Marker position={ambulanceLocation} icon={ambulanceIcon}>
                     <Popup>
@@ -349,8 +366,10 @@ const StoryGenerator = () => {
                   </Marker>
                 )}
 
+                {/* Scanning animation when searching */}
                 <MapScan isSearching={stage === "searching"} center={userLocation} />
 
+                {/* Move ambulance along route */}
                 {routePath && stage === "enroute" && (
                   <AmbulanceMovement
                     routePath={routePath}
@@ -361,7 +380,6 @@ const StoryGenerator = () => {
                     setCompletedPath={setCompletedPath}
                   />
                 )}
-
                 <SetViewOnLocation coords={userLocation} />
               </MapContainer>
             ) : (
@@ -372,15 +390,11 @@ const StoryGenerator = () => {
           </div>
 
           {/* Control Panel */}
-          <div className="w-full md:w-1/3 bg-[#13142d] rounded-xl p-6 shadow-2xl">
-            <motion.div
-              variants={fadeInUp}
-              initial="hidden"
-              animate="visible"
-            >
+          <div className="w-full md:w-1/3 bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-2xl h-fit">
+            <motion.div variants={fadeInUp} initial="hidden" animate="visible">
               <h2 className="text-2xl font-bold mb-6">Emergency Response</h2>
 
-              <AnimatePresence exitBeforeEnter>
+              <AnimatePresence mode="wait">
                 {stage === "initial" && (
                   <motion.div
                     key="initial"
@@ -427,13 +441,23 @@ const StoryGenerator = () => {
                     animate="visible"
                     exit="hidden"
                   >
-                    <div className="bg-[#1c1d3e] p-4 rounded-xl mb-6">
+                    <div className="bg-[#1c1d3e]/50 p-4 rounded-xl mb-6 shadow-inner">
                       <h3 className="font-bold text-yellow-400 mb-2">Ambulance Details</h3>
-                      <p><span className="text-gray-400">ID:</span> {ambulanceDetails.id}</p>
-                      <p><span className="text-gray-400">Type:</span> {ambulanceDetails.vehicle}</p>
-                      <p><span className="text-gray-400">Driver:</span> {ambulanceDetails.driver}</p>
-                      <p><span className="text-gray-400">Contact:</span> {ambulanceDetails.phone}</p>
-                      <p><span className="text-gray-400">License:</span> {ambulanceDetails.license}</p>
+                      <p>
+                        <span className="text-gray-300">ID:</span> {ambulanceDetails.id}
+                      </p>
+                      <p>
+                        <span className="text-gray-300">Type:</span> {ambulanceDetails.vehicle}
+                      </p>
+                      <p>
+                        <span className="text-gray-300">Driver:</span> {ambulanceDetails.driver}
+                      </p>
+                      <p>
+                        <span className="text-gray-300">Contact:</span> {ambulanceDetails.phone}
+                      </p>
+                      <p>
+                        <span className="text-gray-300">License:</span> {ambulanceDetails.license}
+                      </p>
                     </div>
 
                     {stage === "found" && (
@@ -441,7 +465,8 @@ const StoryGenerator = () => {
                         <p className="text-2xl font-bold text-green-400 mb-2">Ambulance Found!</p>
                         <p>An ambulance has been dispatched to your location.</p>
                         <p className="mt-4 text-xl">
-                          Estimated Time of Arrival: <span className="text-yellow-400 font-bold">{ambulanceETA} minutes</span>
+                          Estimated Time of Arrival:{" "}
+                          <span className="text-yellow-400 font-bold">{ambulanceETA} minutes</span>
                         </p>
                         <p className="mt-2 text-blue-300">Calculating fastest route...</p>
                       </div>
@@ -451,13 +476,16 @@ const StoryGenerator = () => {
                       <div className="text-center">
                         <p className="text-2xl font-bold text-blue-400 mb-2">Ambulance En Route</p>
                         <p>Your ambulance is on its way.</p>
-                        <div className="mt-4 mb-4 bg-[#0a0b1d] p-3 rounded-xl">
+                        <div className="mt-4 mb-4 bg-[#0a0b1d] p-3 rounded-xl shadow-inner">
                           <p className="text-xl">Estimated Time of Arrival:</p>
                           <p className="text-3xl text-yellow-400 font-bold">
                             {ambulanceETA} {ambulanceETA === 1 ? "minute" : "minutes"}
                           </p>
                           <div className="w-full bg-gray-700 rounded-full h-2.5 mt-2">
-                            <div className="bg-yellow-400 h-2.5 rounded-full" style={{ width: `${(10 - Math.min(ambulanceETA, 10)) * 10}%` }}></div>
+                            <div
+                              className="bg-yellow-400 h-2.5 rounded-full"
+                              style={{ width: `${(10 - Math.min(ambulanceETA, 10)) * 10}%` }}
+                            ></div>
                           </div>
                         </div>
                         <p className="text-sm text-blue-300 mb-4">
