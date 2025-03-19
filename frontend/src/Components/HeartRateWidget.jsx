@@ -62,7 +62,7 @@ const HeartRateWidget = ({ isGoogleFitConnected, fullWidth = false }) => {
       <div className="border-b border-gray-200 dark:border-gray-700 p-4 flex justify-between items-center">
         <div className="flex items-center space-x-2">
           <Heart className="text-red-500" size={20} />
-          <h2 className="text-lg font-semibold">Heart Rate</h2>
+          <h2 className=" text-white text-lg font-semibold">Heart Rate</h2>
         </div>
         <button 
           onClick={refreshData}

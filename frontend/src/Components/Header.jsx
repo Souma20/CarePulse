@@ -51,9 +51,7 @@ const Header = () => {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-6 flex-grow justify-center">
-          <NavLink to="/" isActive={location.pathname === "/"}>
-            Home
-          </NavLink>
+          
           {/* Replace NavLink with <a> for external link */}
           <a
             href="http://localhost:3000"
@@ -118,9 +116,6 @@ const Header = () => {
       {/* Mobile Menu */}
       {menuOpen && (
         <div className="md:hidden bg-black/90 text-white flex flex-col space-y-4 p-4 absolute top-16 left-0 right-0 z-40">
-          <NavLink to="/" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/"}>
-            Home
-          </NavLink>
           {/* Replace NavLink with <a> for external link */}
           <a
             href="http://localhost:3000"

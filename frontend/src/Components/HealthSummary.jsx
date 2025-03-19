@@ -111,7 +111,7 @@ const HealthSummary = ({ isGoogleFitConnected = false, userId }) => {
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className=" text-white grid grid-cols-2 gap-4">
             <MetricCard 
               icon={<Heart size={20} className="text-red-500" />}
               name="Avg Heart Rate"

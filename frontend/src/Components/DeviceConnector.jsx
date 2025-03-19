@@ -87,7 +87,7 @@ const DeviceConnector = ({ userId, connectedDevices = [], setConnectedDevices, f
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 ${fullWidth ? 'col-span-full' : ''}`}>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 text-white">
         <h2 className="text-xl font-semibold flex items-center">
           <Watch className="mr-2" size={22} />
           Connected Devices
@@ -102,7 +102,7 @@ const DeviceConnector = ({ userId, connectedDevices = [], setConnectedDevices, f
       </div>
 
       {connectedDevices.length === 0 ? (
-        <div className="text-center py-10 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg">
+        <div className="text-center py-10 border-2 border-dashed border-gray-300 text-white dark:border-gray-700 rounded-lg">
           <Watch size={48} className="mx-auto text-gray-400 mb-3" />
           <h3 className="text-lg font-medium mb-1">No devices connected</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-4">Connect your fitness trackers and devices</p>
@@ -125,7 +125,7 @@ const DeviceConnector = ({ userId, connectedDevices = [], setConnectedDevices, f
                   {deviceIcons[device.type] || <Watch size={24} />}
                 </div>
                 <div>
-                  <h3 className="font-medium">{device.name}</h3>
+                  <h3 className="font-medium text-white">{device.name}</h3>
                   <p className="text-gray-500 dark:text-gray-400 text-sm">{device.model}</p>
                 </div>
               </div>
