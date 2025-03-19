@@ -69,6 +69,13 @@ const Header = () => {
           <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>
             Guides
           </NavLink>
+          <NavLink to="/accident-detection" isActive={location.pathname === "/accident-detection"}>
+            Accident Detection
+          </NavLink>
+          {/* Add Face Recognition NavLink */}
+          <NavLink to="/face-recognition" isActive={location.pathname === "/face-recognition"}>
+            Face Recognition
+          </NavLink>
           {loading ? (
             <span className="text-white opacity-70">Loading...</span>
           ) : user ? (
@@ -125,6 +132,13 @@ const Header = () => {
           </NavLink>
           <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>
             Guides
+          </NavLink>
+          <NavLink to="/accident-detection" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/accident-detection"}>
+            Accident Detection
+          </NavLink>
+          {/* Add Face Recognition to mobile menu */}
+          <NavLink to="/face-recognition" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/face-recognition"}>
+            Face Recognition
           </NavLink>
           {loading ? (
             <span className="text-white opacity-70">Loading...</span>
