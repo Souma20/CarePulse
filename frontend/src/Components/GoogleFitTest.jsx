@@ -1,4 +1,3 @@
-// src/components/GoogleFitTest.jsx
 import React, { useState } from 'react';
 import { googleFitService } from "../googleFitService/googleFitService";
 

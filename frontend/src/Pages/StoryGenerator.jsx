@@ -108,7 +108,6 @@ const emergencyButtonPulse = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Utility components
 function SetViewOnLocation({ coords }) {
   const map = useMap();
   useEffect(() => {

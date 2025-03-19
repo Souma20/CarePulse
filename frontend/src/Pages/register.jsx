@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { auth, googleProvider, db } from "../firebase/config";
 import { doc, setDoc } from "firebase/firestore";
-import PhoneVerification from "../components/PhoneVerification"; // Ensure this component exists
+import PhoneVerification from "../Components/PhoneVerification"; // Ensure this component exists
 
 export const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
