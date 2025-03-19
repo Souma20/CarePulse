@@ -5,6 +5,7 @@ import L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import "leaflet-routing-machine";
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Fix Leaflet icon issue
 delete L.Icon.Default.prototype._getIconUrl;
@@ -23,18 +24,39 @@ const ambulanceIcon = new L.Icon({
 });
 
 const userLocationIcon = new L.Icon({
-  iconUrl: "images/user-location.png", // Make sure this image is in public/images
+  iconUrl: "images/user-location.png",
   iconSize: [32, 32],
   iconAnchor: [16, 16],
   popupAnchor: [0, -16],
 });
 
 const hospitalIcon = new L.Icon({
-  iconUrl: "images/hospital.png", // Make sure this image is in public/images
+  iconUrl: "images/hospital.png",
   iconSize: [36, 36],
   iconAnchor: [18, 18],
   popupAnchor: [0, -18],
 });
+
+// Fallback marker with SVG in case images don't load
+const createFallbackIcon = (color, type) => {
+  return L.divIcon({
+    html: `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36">
+        <path fill="${color}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        ${type === 'hospital' ? '<rect fill="white" x="10" y="7" width="4" height="7"/><rect fill="white" x="8" y="9" width="8" height="3"/>' : ''}
+        ${type === 'ambulance' ? '<path fill="white" d="M9,9H11V11H13V9H15V7H13V5H11V7H9V9Z"/>' : ''}
+      </svg>`,
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  });
+};
+
+// Use fallback icons if images fail to load
+const fallbackAmbulanceIcon = createFallbackIcon("#FF0055", "ambulance");
+const fallbackUserLocationIcon = createFallbackIcon("#3388ff", "user");
+const fallbackHospitalIcon = createFallbackIcon("#27ae60", "hospital");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Framer Motion Variants
@@ -308,6 +330,29 @@ const EmergencyResponse = () => {
   const [messages, setMessages] = useState([]);
   const [weatherCondition, setWeatherCondition] = useState("clear");
   const [trafficCondition, setTrafficCondition] = useState("moderate");
+  const [iconsLoaded, setIconsLoaded] = useState({
+    ambulance: false,
+    userLocation: false,
+    hospital: false
+  });
+
+  // Check if custom icons are loading properly
+  useEffect(() => {
+    const checkImage = (url, type) => {
+      const img = new Image();
+      img.onload = () => {
+        setIconsLoaded(prev => ({ ...prev, [type]: true }));
+      };
+      img.onerror = () => {
+        console.warn(`Failed to load ${type} icon`);
+      };
+      img.src = url;
+    };
+
+    checkImage("images/ambulance.png", "ambulance");
+    checkImage("images/user-location.png", "userLocation");
+    checkImage("images/hospital.png", "hospital");
+  }, []);
 
   // Generate ambulances/hospitals after user location is set
   useEffect(() => {
@@ -473,9 +518,9 @@ const EmergencyResponse = () => {
   // ─────────────────────────────────────────────────────────────────────────────
   // Render
   return (
-    <div className="bg-gradient-to-b from-[#0d0e24] to-[#131438] text-white pb-16 mb-16">
-      
-      <section className="bg-[#0d0e24]/70 backdrop-blur-lg border-b border-white/10 py-3 px-6 flex items-center justify-between mt-12 z-10">
+    <div className="bg-gradient-to-b from-[#0d0e24] to-[#131438] text-white min-h-screen pt-20">
+      {/* MediAlert header - Fixed under navbar */}
+      <section className="top-16 left-0 right-0 bg-[#0d0e24]/90 backdrop-blur-lg border-b border-white/10 py-3 px-6 flex items-center justify-between z-10">
         <div className="flex items-center">
           <motion.div
             initial={{ rotate: -20, scale: 0.8 }}
@@ -512,8 +557,9 @@ const EmergencyResponse = () => {
               : "Arrived"}
           </div>
         </div>
-        </section>
-      <div className="container mx-auto px-4 py-8">
+      </section>
+
+      <div className="container mx-auto px-4 py-8 pt-16">
         {/* Main Content */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left column - Map */}
@@ -527,14 +573,21 @@ const EmergencyResponse = () => {
                   />
 
                   {/* User location marker & pulsing effect */}
-                  <Marker position={userLocation} icon={userLocationIcon}>
+                  <Marker 
+                    position={userLocation} 
+                    icon={iconsLoaded.userLocation ? userLocationIcon : fallbackUserLocationIcon}
+                  >
                     <Popup>Your Location</Popup>
                   </Marker>
                   <PulsingDot position={userLocation} />
 
                   {/* Nearby hospitals */}
                   {nearbyHospitals.map((hospital) => (
-                    <Marker key={hospital.id} position={hospital.position} icon={hospitalIcon}>
+                    <Marker 
+                      key={hospital.id} 
+                      position={hospital.position} 
+                      icon={iconsLoaded.hospital ? hospitalIcon : fallbackHospitalIcon}
+                    >
                       <Popup>
                         <div className="font-medium">{hospital.name}</div>
                         <div className="text-sm text-gray-600">{hospital.specialties}</div>
@@ -546,7 +599,11 @@ const EmergencyResponse = () => {
                   {/* Show available ambulances in initial stage */}
                   {stage === "initial" &&
                     availableAmbulances.map((amb) => (
-                      <Marker key={amb.id} position={amb.position} icon={ambulanceIcon}>
+                      <Marker 
+                        key={amb.id} 
+                        position={amb.position} 
+                        icon={iconsLoaded.ambulance ? ambulanceIcon : fallbackAmbulanceIcon}
+                      >
                         <Popup>
                           <div className="font-medium">{amb.vehicle}</div>
                           <div className="text-sm">Ambulance {amb.id}</div>
@@ -583,7 +640,10 @@ const EmergencyResponse = () => {
 
                   {/* Ambulance marker during found/enroute/arrived */}
                   {ambulanceLocation && (stage === "found" || stage === "enroute" || stage === "arrived") && (
-                    <Marker position={ambulanceLocation} icon={ambulanceIcon}>
+                    <Marker 
+                      position={ambulanceLocation} 
+                      icon={iconsLoaded.ambulance ? ambulanceIcon : fallbackAmbulanceIcon}
+                    >
                       <Popup>
                         <motion.div variants={bounceIn} initial="hidden" animate="visible">
                           <div className="font-medium">{ambulanceDetails?.vehicle}</div>

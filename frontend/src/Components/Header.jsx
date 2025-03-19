@@ -50,7 +50,7 @@ const Header = () => {
         </div>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center space-x-6">
+        <div className="hidden md:flex items-center space-x-6 flex-grow justify-center">
           <NavLink to="/" isActive={location.pathname === "/"}>
             Home
           </NavLink>
@@ -67,7 +67,7 @@ const Header = () => {
             Community
           </NavLink>
           <NavLink to="/contact-us" isActive={location.pathname === "/contact-us"}>
-            Guides
+           FirstAid Guides
           </NavLink>
           <NavLink to="/accident-detection" isActive={location.pathname === "/accident-detection"}>
             Accident Detection
@@ -76,6 +76,10 @@ const Header = () => {
           <NavLink to="/face-recognition" isActive={location.pathname === "/face-recognition"}>
             Face Recognition
           </NavLink>
+        </div>
+
+        {/* Logout and Profile Button */}
+        <div className="hidden md:flex items-center space-x-4">
           {loading ? (
             <span className="text-white opacity-70">Loading...</span>
           ) : user ? (
@@ -131,7 +135,7 @@ const Header = () => {
             Community
           </NavLink>
           <NavLink to="/contact-us" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/contact-us"}>
-            Guides
+            FirstAid Guides
           </NavLink>
           <NavLink to="/accident-detection" onClick={() => setMenuOpen(false)} isActive={location.pathname === "/accident-detection"}>
             Accident Detection
