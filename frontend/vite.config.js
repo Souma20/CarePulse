@@ -6,11 +6,7 @@ export default defineConfig({
     react({
       babel: {
         plugins: [
-          ['@babel/plugin-transform-runtime',
-            {
-              regenerator: true,
-            },
-          ],
+          ['@babel/plugin-transform-runtime', { regenerator: true }],
         ],
       },
     }),
@@ -27,6 +23,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
-})
+});

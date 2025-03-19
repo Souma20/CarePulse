@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { Pill, PlusCircle, Bell, Trash2, Edit, CheckCircle, Calendar } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Pill, PlusCircle, Bell, Trash2, Edit, CheckCircle, Calendar, Volume2, VolumeX } from "lucide-react";
 import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc, where } from "firebase/firestore";
 import { firestore } from "../firebase/config";
+
 const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth = false }) => {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentReminder, setCurrentReminder] = useState(null);
+  const [activeAlarms, setActiveAlarms] = useState({});
+  const [soundEnabled, setSoundEnabled] = useState(true);
   
   // Form state
   const [medicationName, setMedicationName] = useState("");
@@ -15,12 +18,121 @@ const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth =
   const [frequency, setFrequency] = useState("daily");
   const [times, setTimes] = useState(["08:00"]);
   const [notes, setNotes] = useState("");
+  
+  // Refs for audio elements
+  const alarmSound = useRef(null);
+  const alarmTimers = useRef({});
 
   useEffect(() => {
     if (userId) {
       fetchReminders();
     }
+    
+    // Create audio element
+    alarmSound.current = new Audio("ringtone.mp3");
+    alarmSound.current.loop = true;
+    
+    // Cleanup function
+    return () => {
+      // Clear all timers when component unmounts
+      Object.values(alarmTimers.current).forEach(timer => clearTimeout(timer));
+      
+      // Stop and cleanup audio
+      if (alarmSound.current) {
+        alarmSound.current.pause();
+        alarmSound.current.currentTime = 0;
+      }
+    };
   }, [userId]);
+
+  useEffect(() => {
+    // Set up alarm timers whenever reminders change
+    scheduleAlarms();
+  }, [reminders, soundEnabled]);
+
+  const scheduleAlarms = () => {
+    // Clear existing timers
+    Object.values(alarmTimers.current).forEach(timer => clearTimeout(timer));
+    alarmTimers.current = {};
+    
+    // Skip if sound is disabled
+    if (!soundEnabled) return;
+    
+    // Schedule new timers for each reminder
+    reminders.forEach(reminder => {
+      const nextDoseTime = getNextDoseTime(reminder);
+      const now = new Date();
+      const timeUntilAlarm = nextDoseTime - now;
+      
+      if (timeUntilAlarm > 0) {
+        alarmTimers.current[reminder.id] = setTimeout(() => {
+          triggerAlarm(reminder.id, reminder.medicationName);
+        }, timeUntilAlarm);
+      }
+    });
+  };
+
+  const triggerAlarm = (reminderId, medicationName) => {
+    // Only play if sound is enabled
+    if (soundEnabled) {
+      alarmSound.current.play();
+      
+      // Update state to show active alarm
+      setActiveAlarms(prev => ({
+        ...prev,
+        [reminderId]: medicationName
+      }));
+      
+      // Show browser notification if permission is granted
+      if (Notification.permission === "granted") {
+        new Notification("Medication Reminder", {
+          body: `Time to take your ${medicationName}`,
+          icon: "/icons/pill_icon.png"
+        });
+      }
+    }
+  };
+
+  const dismissAlarm = (reminderId) => {
+    // Remove from active alarms
+    setActiveAlarms(prev => {
+      const updated = {...prev};
+      delete updated[reminderId];
+      
+      // If no more active alarms, stop the sound
+      if (Object.keys(updated).length === 0) {
+        alarmSound.current.pause();
+        alarmSound.current.currentTime = 0;
+      }
+      
+      return updated;
+    });
+    
+    // Reschedule for next dose
+    scheduleAlarms();
+  };
+
+  const toggleSound = () => {
+    const newSoundState = !soundEnabled;
+    setSoundEnabled(newSoundState);
+    
+    // If turning off, stop any playing alarms
+    if (!newSoundState && alarmSound.current) {
+      alarmSound.current.pause();
+      alarmSound.current.currentTime = 0;
+      setActiveAlarms({});
+    }
+    
+    // If turning on, schedule alarms
+    if (newSoundState) {
+      scheduleAlarms();
+    }
+    
+    // Save preference to localStorage
+    localStorage.setItem("medicationSoundEnabled", newSoundState);
+    
+    return newSoundState;
+  };
 
   const fetchReminders = async () => {
     setLoading(true);
@@ -46,6 +158,17 @@ const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth =
       }
       
       setReminders(fetchedReminders);
+      
+      // Load sound preference from localStorage
+      const savedSoundPreference = localStorage.getItem("medicationSoundEnabled");
+      if (savedSoundPreference !== null) {
+        setSoundEnabled(savedSoundPreference === "true");
+      }
+      
+      // Request notification permission if not granted
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
     } catch (error) {
       console.error("Error fetching reminders:", error);
     } finally {
@@ -138,6 +261,18 @@ const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth =
       try {
         const reminderRef = doc(firestore, "medicationReminders", reminderId);
         await deleteDoc(reminderRef);
+        
+        // Clear any active alarms for this reminder
+        if (alarmTimers.current[reminderId]) {
+          clearTimeout(alarmTimers.current[reminderId]);
+          delete alarmTimers.current[reminderId];
+        }
+        
+        // Remove from active alarms if currently ringing
+        if (activeAlarms[reminderId]) {
+          dismissAlarm(reminderId);
+        }
+        
         fetchReminders();
       } catch (error) {
         console.error("Error deleting reminder:", error);
@@ -187,16 +322,46 @@ const MedicationReminders = ({ userId, limit, showAddButton = false, fullWidth =
           <Pill className="mr-2" size={20} />
           Medication Reminders
         </h2>
-        {showAddButton && (
+        <div className="flex items-center">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center text-blue-500 hover:text-blue-700"
+            onClick={toggleSound}
+            className={`mr-3 text-gray-500 hover:text-gray-700 ${soundEnabled ? 'text-blue-500' : ''}`}
+            title={soundEnabled ? "Sound On" : "Sound Off"}
           >
-            <PlusCircle size={18} className="mr-1" />
-            Add
+            {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
           </button>
-        )}
+          {showAddButton && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center text-blue-500 hover:text-blue-700"
+            >
+              <PlusCircle size={18} className="mr-1" />
+              Add
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Active alarm notifications */}
+      {Object.keys(activeAlarms).length > 0 && (
+        <div className="mb-4 bg-red-100 border border-red-300 p-3 rounded-md">
+          <div className="font-medium text-red-700 mb-2 flex items-center">
+            <Bell size={16} className="mr-1 animate-pulse" />
+            Medication Reminder
+          </div>
+          {Object.entries(activeAlarms).map(([id, name]) => (
+            <div key={id} className="flex justify-between items-center mb-1 last:mb-0">
+              <div className="text-red-700">Time to take: {name}</div>
+              <button 
+                onClick={() => dismissAlarm(id)}
+                className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600"
+              >
+                Take
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-4">
