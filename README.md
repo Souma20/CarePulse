@@ -1,68 +1,54 @@
-# KahaniAI
+# CarePulse
 
-*A revolutionary AI-powered storytelling platform*
+CarePulse is an AI-powered healthcare platform designed to provide a seamless and intelligent healthcare experience. It integrates AI diagnosis, real-time health monitoring, emergency response systems, and community engagement tools to enhance patient care and safety.
 
-## 🚀 About KahaniAI
-**KahaniAI** is an AI-driven storytelling platform that leverages multiple **LLM models** to generate and enhance stories. Whether you want to create short tales, enhance your writing, or convert text into engaging PDFs, KahaniAI has got you covered!
+## 🚀 Features
 
-## ✨ Features
+### 🏥 AI-Powered Healthcare
+- **AI Diagnosis**: Smart AI model to provide preliminary medical diagnoses.
+- **Doctor AI Bot**: Chatbot assistance for medical inquiries.
+- **Appointment Booking**: Integrated doctor-side dashboard for scheduling and managing appointments.
 
-### 🖼️ AI-Powered Image Generation
-- Generate stunning images based on prompts for your stories.
-- AI ensures high-quality, theme-based visual content.
+### 🚑 Emergency & Health Tracking
+- **Ambulance Tracker**: Real-time ambulance location tracking.
+- **Emergency Contacts**: Quick access to emergency numbers and contacts.
+- **Accident Detection**: AI-powered image recognition to detect accidents.
 
-### 📖 Story Generation
-- Choose from **100-word** or **200-word** formats for AI-generated stories.
-- Creative, engaging, and customized storytelling using advanced LLM models.
+### 🏡 Personalized Dashboard
+- **Smartwatch Integration**: Monitors health metrics via Google Fit API.
+- **Personal Medication Reminder**: Custom reminders for medications and health routines.
+- **Action Tracker**: Guides and tracks first aid procedures in emergencies.
 
-### 📝 Story Enhancer
-- Improve and expand existing stories with AI-powered suggestions.
-- Enhances tone, readability, and engagement.
-
-### ✍️ Rich Text Editor (PDF Export)
-- Write and format your own stories with an intuitive text editor.
-- **Export stories as PDFs** for easy sharing and publishing.
-
-### 📰 Blog Page
-- **Post and share blogs** about storytelling and creative writing.
-- Users can **like and engage** with posts.
-
-### 🔒 Secure Login with 2-Step Verification
-- Phone number verification ensures a **secure** authentication process.
-- Keeps user data protected.
-
-### 🎵 Small Music Tool
-- An integrated **music feature** for an immersive writing experience.
-- Helps set the right mood while creating stories.
+### 🌐 Community & Resources
+- **Community Page**: Connect with other users, share experiences, and seek advice.
+- **First Aid Guides**: Educational resources to assist in emergencies.
 
 ## 📸 Screenshots
 
-### 🔹 Homepage
-![Homepage](screenshots/home-page.png)
+### Home Page
+![Home Page](screenshots/home.png)
 
-### 🔹 Image Generation
-![Image Generation](screenshots/Image-Generation.png)
+### AI Diagnosis
+![AI Diagnosis](screenshots/ai_diagnosis.png)
 
-### 🔹 Story Generation
-![Story Generation](screenshots/story-generation.png)
+### Doctor Dashboard
+![Doctor Dashboard](screenshots/doctor_dashboard.png)
 
-### 🔹 Story Enhancer
-![Story Enhancer](screenshots/story-enhancer.png)
+### Emergency Contacts
+![Emergency Contacts](screenshots/emergency_contacts.png)
 
-### 🔹 Blog Page
-![Blog Page1](screenshots/blog-pg1.png)
+### Smartwatch Integration
+![Smartwatch Integration](screenshots/smartwatch.png)
 
-![Blog Page2](screenshots/blog-pg2.png)
+## 🛠️ Tech Stack
+- **Frontend**: React (Vite), Tailwind CSS, Framer Motion
+- **Backend**: Firebase, Appwrite
+- **Machine Learning**: AI Diagnosis & Image-Based Accident Detection
+- **APIs**: Google Fit API, Gemini AI
+- **Frameworks**: Next.js for appointment system
 
-![Blog Page1](screenshots/full-blog-pg.png)
 
-
-### 🔹 Text Editor
-![Text Editor](screenshots/text-editor.png)
-
-### 🔹 Signup and Verification
-![Sign up Page](screenshots/sign-up.png)
-
-![Verification Page](screenshots/verification.png)
+## 📌 Contributing
+Contributions are welcome! Feel free to submit issues and pull requests.
 
 
