@@ -24,6 +24,13 @@ CarePulse is an AI-powered healthcare platform designed to provide a seamless an
 - **Community Page**: Connect with other users, share experiences, and seek advice.
 - **First Aid Guides**: Educational resources to assist in emergencies.
 
+## 🛠️ Tech Stack
+- **Frontend**: React (Vite), Tailwind CSS, Framer Motion
+- **Backend**: Firebase, Appwrite
+- **Machine Learning**: AI Diagnosis & Image-Based Accident Detection
+- **APIs**: Google Fit API, Gemini AI
+- **Frameworks**: Next.js for appointment system
+
 ## 📸 Screenshots
 
 ### Home Page and Dr. AI
