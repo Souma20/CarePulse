@@ -25,20 +25,32 @@ CarePulse is an AI-powered healthcare platform designed to provide a seamless an
 
 ## 📸 Screenshots
 
-### Home Page
+### Home Page and Dr. AI
 ![Home Page](screenshots/home.png)
 
 ### AI Diagnosis
 ![AI Diagnosis](screenshots/ai_diagnosis.png)
 
-### Doctor Dashboard
-![Doctor Dashboard](screenshots/doctor_dashboard.png)
+### Ambulance Tracker
+![Ambulance tracker](screenshots/ambulance-tracker.png)
 
 ### Emergency Contacts
 ![Emergency Contacts](screenshots/emergency_contacts.png)
 
-### Smartwatch Integration
+### Appointment Form and Doctor Dashboard
+![Appointemnt Form](screenshots/appointment.png)
+![Doctor Dashboard](screenshots/doctor_dashboard.png)
+
+
+### First Aid Guides with tracker
+![First Aid Guide](screenshots/guides.png)
+
+### Accident Detection
+![Accident Detection](screenshots/accident.png)
+
+### Smartwatch Integration and Personalised Reminder
 ![Smartwatch Integration](screenshots/smartwatch.png)
+
 
 ## 🛠️ Tech Stack
 - **Frontend**: React (Vite), Tailwind CSS, Framer Motion
