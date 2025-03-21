@@ -1,7 +1,6 @@
 # CarePulse
 
 CarePulse is an AI-powered healthcare platform designed to provide a seamless and intelligent healthcare experience. It integrates AI diagnosis, real-time health monitoring, emergency response systems, and community engagement tools to enhance patient care and safety.
-<h3>The Appointments and admin dashboard is in a different repository, u can check it out @https://github.com/salifshaikh/CarePulse-Admin </h3>
 
 ## 🚀 Features
 
